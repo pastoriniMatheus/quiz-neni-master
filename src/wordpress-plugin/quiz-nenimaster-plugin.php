@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Quiz NeniMaster
  * Description: Plugin oficial para integrar quizzes do NeniMaster no WordPress
- * Version: 1.3.6
+ * Version: 1.3.7
  * Author: NeniMaster
  */
 
@@ -27,7 +27,7 @@ class QuizNeniMaster {
             'quiz-nenimaster-admin',
             plugin_dir_url(__FILE__) . 'admin.js',
             array('jquery'),
-            '1.3.0',
+            '1.3.7',
             true
         );
         wp_localize_script('quiz-nenimaster-admin', 'quizNeniMaster', array(
@@ -56,7 +56,75 @@ class QuizNeniMaster {
     }
     
     public function admin_page_content() {
-        // O conteúdo da página de admin não precisa de alterações
+        ?>
+        <style>
+            #quiz-nenimaster-admin-page .postbox-container { float: left; width: 49%; margin-right: 2%; }
+            #quiz-nenimaster-admin-page .postbox-container:last-child { margin-right: 0; }
+            #quiz-nenimaster-admin-page .form-table th { padding: 15px 10px 15px 0; }
+            #quiz-nenimaster-admin-page .form-table td { padding: 10px; }
+            .quiz-list-item { background: #f9f9f9; border: 1px solid #ccd0d4; padding: 12px; margin-bottom: 8px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+            .quiz-list-item .title { font-weight: 600; }
+            .quiz-list-item .shortcode { background: #eee; padding: 4px 8px; border-radius: 3px; font-family: monospace; user-select: all; }
+            .copy-btn { margin-left: 10px; }
+            #load-quizzes-spinner { display: none; vertical-align: middle; margin-left: 5px; }
+        </style>
+        <div class="wrap" id="quiz-nenimaster-admin-page">
+            <h1><span class="dashicons-forms" style="font-size: 30px; height: 30px; width: 30px; margin-right: 5px;"></span> Quiz NeniMaster</h1>
+            <p>Gerencie a integração dos seus quizzes interativos diretamente no WordPress.</p>
+            
+            <div id="poststuff">
+                <div class="postbox-container">
+                    <div class="postbox">
+                        <h2 class="hndle"><span>Configurações da API</span></h2>
+                        <div class="inside">
+                            <form method="post" action="options.php">
+                                <?php settings_fields('quiz_nenimaster_options'); ?>
+                                <table class="form-table">
+                                    <tr valign="top">
+                                        <th scope="row"><label for="quiz_nenimaster_api_url">URL do Sistema</label></th>
+                                        <td>
+                                            <input type="url" id="quiz_nenimaster_api_url" name="quiz_nenimaster_api_url" value="<?php echo esc_attr(get_option('quiz_nenimaster_api_url')); ?>" class="regular-text" />
+                                            <p class="description">A URL base da sua aplicação. Ex: https://riqfafiivzpotfjqfscd.supabase.co</p>
+                                        </td>
+                                    </tr>
+                                    <tr valign="top">
+                                        <th scope="row"><label for="quiz_nenimaster_anon_key">Supabase Anon Key (Pública)</label></th>
+                                        <td>
+                                            <input type="text" id="quiz_nenimaster_anon_key" name="quiz_nenimaster_anon_key" value="<?php echo esc_attr(get_option('quiz_nenimaster_anon_key')); ?>" class="regular-text" />
+                                            <p class="description">A chave pública (anon) do seu projeto Supabase.</p>
+                                        </td>
+                                    </tr>
+                                    <tr valign="top">
+                                        <th scope="row"><label for="quiz_nenimaster_api_key">Chave da API (Privada)</label></th>
+                                        <td>
+                                            <input type="text" id="quiz_nenimaster_api_key" name="quiz_nenimaster_api_key" value="<?php echo esc_attr(get_option('quiz_nenimaster_api_key')); ?>" class="regular-text" />
+                                            <p class="description">Sua chave de API gerada no painel (começa com 'qb_').</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <?php submit_button('Salvar Configurações'); ?>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="postbox-container">
+                    <div class="postbox">
+                        <h2 class="hndle"><span>Meus Quizzes</span></h2>
+                        <div class="inside">
+                            <p>Clique no botão para buscar seus quizzes publicados e obter os shortcodes.</p>
+                            <p>
+                                <button id="load-quizzes-btn" class="button button-primary">Carregar Quizzes</button>
+                                <span class="spinner" id="load-quizzes-spinner"></span>
+                            </p>
+                            <div id="quiz-list-container" style="margin-top: 20px;">
+                                <p id="quiz-list-status">Seus quizzes aparecerão aqui.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <?php
     }
     
     public function shortcode_handler($atts) {
@@ -81,8 +149,7 @@ class QuizNeniMaster {
             return '<!-- Erro Quiz NeniMaster: Plugin não configurado. -->';
         }
         
-        // ATUALIZADO: Rota da API explícita e sem ambiguidades
-        $api_endpoint = rtrim($system_url, '/') . '/functions/v1/quiz-api/quizzes/' . esc_attr($atts['slug']);
+        $api_endpoint = rtrim($system_url, '/') . '/functions/v1/quiz-api?slug=' . esc_attr($atts['slug']);
         
         $response = wp_remote_get($api_endpoint, array(
             'headers' => array(

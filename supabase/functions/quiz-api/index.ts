@@ -38,49 +38,43 @@ serve(async (req) => {
     }
 
     const url = new URL(req.url);
-    const pathParts = url.pathname.split('/').filter(p => p);
-    
-    const apiIndex = pathParts.indexOf('quiz-api');
-    if (apiIndex === -1) {
-        return new Response(JSON.stringify({ error: 'Endpoint inválido' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    const params = url.searchParams;
+    const action = params.get('action');
+    const slug = params.get('slug');
+
+    // Rota para listar todos os quizzes
+    if (req.method === 'GET' && action === 'list') {
+      console.log(`[${requestId}] 📋 Matched action=list. Fetching for user:`, keyData.user_id);
+      const { data, error } = await supabase
+        .from('quizzes')
+        .select('id, title, description, slug, status')
+        .eq('user_id', keyData.user_id)
+        .eq('status', 'published')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error;
+      return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const resource = pathParts[apiIndex + 1];
-    const slug = pathParts[apiIndex + 2];
+    // Rota para buscar um quiz específico
+    if (req.method === 'GET' && slug) {
+      console.log(`[${requestId}] 🎯 Matched slug=${slug}. Fetching quiz.`);
+      const { data, error } = await supabase
+        .from('quizzes')
+        .select('*')
+        .eq('slug', slug)
+        .eq('user_id', keyData.user_id)
+        .eq('status', 'published')
+        .single()
 
-    // Rota: GET /quiz-api/quizzes/{slug}
-    if (req.method === 'GET' && resource === 'quizzes' && slug) {
-        console.log(`[${requestId}] 🎯 Matched /quizzes/{slug}. Fetching quiz by Slug:`, slug);
-        const { data, error } = await supabase
-            .from('quizzes')
-            .select('*')
-            .eq('slug', slug)
-            .eq('user_id', keyData.user_id)
-            .eq('status', 'published')
-            .single()
-
-        if (error) {
-            return new Response(JSON.stringify({ error: 'Quiz não encontrado ou não publicado' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-        }
-        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
-    
-    // Rota: GET /quiz-api/quizzes
-    if (req.method === 'GET' && resource === 'quizzes') {
-        console.log(`[${requestId}] 📋 Matched /quizzes. Fetching for user:`, keyData.user_id);
-        const { data, error } = await supabase
-            .from('quizzes')
-            .select('id, title, description, slug, status')
-            .eq('user_id', keyData.user_id)
-            .eq('status', 'published')
-            .order('created_at', { ascending: false })
-
-        if (error) throw error;
-        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      if (error) {
+        return new Response(JSON.stringify({ error: 'Quiz não encontrado ou não publicado' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
+      return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    console.log(`[${requestId}] ❌ No route matched for resource:`, resource);
-    return new Response(JSON.stringify({ error: 'Endpoint não encontrado' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    console.log(`[${requestId}] ❌ No route matched.`);
+    return new Response(JSON.stringify({ error: 'Ação ou slug não especificado' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   } catch (error) {
     console.error('💥 Internal server error:', error);

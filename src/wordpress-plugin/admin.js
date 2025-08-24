@@ -4,6 +4,7 @@ jQuery(document).ready(function($) {
     const loadBtn = $('#load-quizzes-btn');
     const container = $('#quiz-list-container');
     const statusEl = $('#quiz-list-status');
+    const spinner = $('#load-quizzes-spinner');
 
     if (loadBtn.length === 0) {
         console.error('Botão #load-quizzes-btn não encontrado.');
@@ -14,7 +15,7 @@ jQuery(document).ready(function($) {
         console.log('Botão "Carregar Quizzes" clicado.');
         const apiUrl = quizNeniMaster.apiUrl;
         const apiKey = quizNeniMaster.apiKey;
-        const anonKey = quizNeniMaster.anonKey; // Pegando a nova chave
+        const anonKey = quizNeniMaster.anonKey;
         
         console.log('URL da API:', apiUrl);
         console.log('Chave Anon:', anonKey ? '...' + anonKey.slice(-4) : 'Nenhuma');
@@ -25,18 +26,19 @@ jQuery(document).ready(function($) {
             return;
         }
 
-        const endpoint = apiUrl.replace(/\/$/, '') + '/functions/v1/quiz-api/quizzes';
+        const endpoint = apiUrl.replace(/\/$/, '') + '/functions/v1/quiz-api?action=list';
         console.log('Endpoint da requisição:', endpoint);
 
         $.ajax({
             url: endpoint,
             method: 'GET',
             headers: {
-                'Authorization': 'Bearer ' + anonKey, // Adicionando o cabeçalho de autorização
+                'Authorization': 'Bearer ' + anonKey,
                 'x-api-key': apiKey
             },
             beforeSend: function() {
                 loadBtn.prop('disabled', true);
+                spinner.addClass('is-active');
                 statusEl.text('Carregando quizzes...').css('color', '');
                 container.html(statusEl);
             },
@@ -52,7 +54,7 @@ jQuery(document).ready(function($) {
                                     <div class="title">${quiz.title || 'Quiz sem título'}</div>
                                     <code class="shortcode">${shortcode}</code>
                                 </div>
-                                <button class="button copy-btn" data-shortcode="${shortcode}">Copiar</button>
+                                <button class="button button-secondary copy-btn" data-shortcode="${shortcode}">Copiar</button>
                             </div>
                         `;
                         container.append(item);
@@ -84,6 +86,7 @@ jQuery(document).ready(function($) {
             },
             complete: function() {
                 loadBtn.prop('disabled', false);
+                spinner.removeClass('is-active');
             }
         });
     });
