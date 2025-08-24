@@ -49,7 +49,7 @@ export const LocationScript: React.FC<LocationScriptProps> = ({ customScript }) 
       // Função para atualizar o número de forma mais suave e lenta
       const atualizarNumero = () => {
         const novoNumero = gerarNumeroAleatorio();
-        const steps = 100; // Aumentado para 100 passos para uma transição mais suave
+        const steps = 100; // Mantido para transição suave
         const step = (novoNumero - peopleCount) / steps; 
         let currentCount = peopleCount;
 
@@ -61,13 +61,13 @@ export const LocationScript: React.FC<LocationScriptProps> = ({ customScript }) 
             setPeopleCount(novoNumero);
             clearInterval(updateInterval);
           }
-        }, 100); // Aumentado para 100ms entre atualizações para uma animação mais lenta
+        }, 100); // Mantido para 100ms entre atualizações (10 segundos de transição total)
       };
 
       // Função para determinar o tempo aleatório para a próxima atualização
       const tempoAleatorio = () => {
-        // Tempo mais longo entre atualizações: 3 a 8 segundos
-        return Math.floor(Math.random() * (8000 - 3000 + 1)) + 3000;
+        // Aumentado para 15 a 30 segundos para permitir que a animação termine e haja uma pausa
+        return Math.floor(Math.random() * (30000 - 15000 + 1)) + 15000; 
       };
 
       // Função para iniciar as atualizações com intervalo variável
