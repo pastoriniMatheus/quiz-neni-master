@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -28,7 +29,6 @@ export const QuizBuilder: React.FC = () => {
       finalAdCode: '',
       testAdEnabled: false,
       processingTime: 3,
-      adDisplayTime: 5, // Novo padrão
       customTexts: {
         processing: 'Processando suas informações...',
         result: 'Encontramos uma oportunidade para você!',
@@ -66,10 +66,7 @@ export const QuizBuilder: React.FC = () => {
   useEffect(() => {
     if (existingQuiz) {
       const sessions = Array.isArray(existingQuiz.sessions) 
-        ? (existingQuiz.sessions as unknown as QuizSession[]).map(session => ({
-            ...session,
-            adDisplayTime: session.adDisplayTime ?? 5 // Padrão para anúncios de sessão
-          }))
+        ? (existingQuiz.sessions as unknown as QuizSession[])
         : [];
 
       const settings = (existingQuiz.settings && typeof existingQuiz.settings === 'object' && !Array.isArray(existingQuiz.settings))
@@ -82,7 +79,6 @@ export const QuizBuilder: React.FC = () => {
             finalAdCode: '',
             testAdEnabled: false,
             processingTime: 3,
-            adDisplayTime: 5, // Novo padrão
             customTexts: {
               processing: 'Processando suas informações...',
               result: 'Encontramos uma oportunidade para você!',
@@ -104,9 +100,6 @@ export const QuizBuilder: React.FC = () => {
       if (settings.finalAdCode === undefined) {
         settings.finalAdCode = '';
       }
-      if (settings.adDisplayTime === undefined) { // Novo campo
-        settings.adDisplayTime = 5;
-      }
 
       const design = (existingQuiz.design && typeof existingQuiz.design === 'object' && !Array.isArray(existingQuiz.design))
         ? (existingQuiz.design as unknown as QuizDesign)
@@ -122,7 +115,7 @@ export const QuizBuilder: React.FC = () => {
         title: existingQuiz.title || '',
         description: existingQuiz.description || '',
         slug: existingQuiz.slug || '',
-        sessions, // Usar sessões atualizadas
+        sessions,
         settings,
         design,
         status: (existingQuiz.status as 'draft' | 'published') || 'draft'

@@ -44,8 +44,7 @@ const QuizEditor = ({ quiz, onChange }: QuizEditorProps) => {
       showAd: false,
       formFields: type === 'form' ? { name: true, email: true } : undefined,
       required: true,
-      displayTime: 0,
-      adDisplayTime: 5 // Novo padrão para anúncios de sessão
+      displayTime: 0
     };
     updateQuiz({ sessions: [...quiz.sessions, newSession] });
   };
@@ -396,45 +395,22 @@ const QuizEditor = ({ quiz, onChange }: QuizEditorProps) => {
                         </div>
 
                         {quiz.settings.showFinalAd && (
-                          <>
-                            <div>
-                              <Label>Código do Anúncio Final</Label>
-                              <Textarea
-                                value={quiz.settings.finalAdCode || ''}
-                                onChange={(e) => 
-                                  updateQuiz({ 
-                                    settings: { 
-                                      ...quiz.settings, 
-                                      finalAdCode: e.target.value 
-                                    }
-                                  })
-                                }
-                                placeholder="Cole aqui o código HTML do seu anúncio (Google AdSense, etc.)"
-                                rows={4}
-                              />
-                            </div>
-                            <div>
-                              <Label>Tempo de Exibição do Anúncio Final (segundos)</Label>
-                              <Input
-                                type="number"
-                                value={quiz.settings.adDisplayTime || 5} // Novo campo
-                                onChange={(e) => 
-                                  updateQuiz({ 
-                                    settings: { 
-                                      ...quiz.settings, 
-                                      adDisplayTime: Number(e.target.value) 
-                                    }
-                                  })
-                                }
-                                min="1"
-                                max="60"
-                                placeholder="5"
-                              />
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Tempo para o botão "Continuar" aparecer no anúncio final.
-                              </p>
-                            </div>
-                          </>
+                          <div>
+                            <Label>Código do Anúncio Final</Label>
+                            <Textarea
+                              value={quiz.settings.finalAdCode || ''}
+                              onChange={(e) => 
+                                updateQuiz({ 
+                                  settings: { 
+                                    ...quiz.settings, 
+                                    finalAdCode: e.target.value 
+                                  }
+                                })
+                              }
+                              placeholder="Cole aqui o código HTML do seu anúncio (Google AdSense, etc.)"
+                              rows={4}
+                            />
+                          </div>
                         )}
 
                         <div className="flex items-center justify-between">

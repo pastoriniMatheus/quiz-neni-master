@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -57,10 +58,7 @@ export const QuizView: React.FC = () => {
 
   // Safely convert Json types to our TypeScript interfaces
   const sessions: QuizSession[] = Array.isArray(quizData.sessions) 
-    ? (quizData.sessions as unknown as QuizSession[]).map(session => ({
-        ...session,
-        adDisplayTime: session.adDisplayTime ?? 5 // Padrão para anúncios de sessão
-      }))
+    ? (quizData.sessions as unknown as QuizSession[])
     : [];
 
   const settings: QuizSettings = (quizData.settings && typeof quizData.settings === 'object' && !Array.isArray(quizData.settings))
@@ -71,8 +69,6 @@ export const QuizView: React.FC = () => {
         redirect: { enabled: false, url: '', delay: 3 },
         showFinalAd: false,
         testAdEnabled: false,
-        processingTime: 3,
-        adDisplayTime: 5, // Novo padrão
         customTexts: {
           processing: 'Processando suas informações...',
           result: 'Encontramos uma oportunidade para você!',
@@ -87,9 +83,6 @@ export const QuizView: React.FC = () => {
       result: 'Encontramos uma oportunidade para você!',
       adMessage: 'Veja um anúncio para continuar'
     };
-  }
-  if (settings.adDisplayTime === undefined) { // Novo campo
-    settings.adDisplayTime = 5;
   }
 
   const design: QuizDesign = (quizData.design && typeof quizData.design === 'object' && !Array.isArray(quizData.design))
@@ -106,10 +99,8 @@ export const QuizView: React.FC = () => {
     : 'draft';
 
   const quiz: Quiz = {
-    id: quizData.id, // Adicionado id para QuizView
     title: quizData.title || '',
     description: quizData.description || '',
-    slug: quizData.slug,
     sessions,
     settings,
     design,

@@ -1,3 +1,4 @@
+
 export interface QuizSession {
   id: string;
   type: 'question' | 'form';
@@ -14,7 +15,6 @@ export interface QuizSession {
   };
   displayTime?: number;
   required?: boolean;
-  adDisplayTime?: number; // Novo: Tempo em segundos para exibir o anúncio antes do botão de pular
 }
 
 export interface QuizSettings {
@@ -30,7 +30,6 @@ export interface QuizSettings {
     result: string;
     adMessage: string;
   };
-  adDisplayTime?: number; // Novo: Tempo em segundos para exibir o anúncio final antes do botão de pular
 }
 
 export interface QuizDesign {

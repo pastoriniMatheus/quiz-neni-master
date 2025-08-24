@@ -8,30 +8,21 @@ interface AdManagerProps {
   adCode?: string;
   adMessage: string;
   onAdComplete: () => void;
-  adDisplayTime?: number; // Nova prop
 }
 
 export const AdManager: React.FC<AdManagerProps> = ({
   isTestMode,
   adCode,
   adMessage,
-  onAdComplete,
-  adDisplayTime = 5 // Padrão para 5 segundos se não for fornecido
+  onAdComplete
 }) => {
-  const [countdown, setCountdown] = useState(adDisplayTime);
+  const [countdown, setCountdown] = useState(5);
   const [showSkipButton, setShowSkipButton] = useState(false);
   const adContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Resetar contagem regressiva e estado do botão de pular quando adDisplayTime ou adCode muda
-    setCountdown(adDisplayTime);
-    setShowSkipButton(false);
-
-    let timer: NodeJS.Timeout;
-    let adTimer: NodeJS.Timeout;
-
     if (isTestMode) {
-      timer = setInterval(() => {
+      const timer = setInterval(() => {
         setCountdown(prev => {
           if (prev <= 1) {
             setShowSkipButton(true);
@@ -41,41 +32,55 @@ export const AdManager: React.FC<AdManagerProps> = ({
           return prev - 1;
         });
       }, 1000);
-    } else {
-      // Para anúncios reais, injetar código e definir um temporizador para o botão de pular
-      if (adCode && adContainerRef.current) {
-        const container = adContainerRef.current;
-        container.innerHTML = adCode;
 
-        // Executar quaisquer scripts no código do anúncio dentro do contêiner
-        const scripts = Array.from(container.querySelectorAll('script'));
-        scripts.forEach((oldScript) => {
-          const newScript = document.createElement('script');
-          Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-          if (oldScript.src) {
-            newScript.src = oldScript.src;
-            newScript.async = true;
-          } else {
-            newScript.text = oldScript.text || '';
-          }
-          oldScript.parentNode?.replaceChild(newScript, oldScript);
-        });
-      }
-
-      // Temporizador para mostrar o botão de pular
-      adTimer = setTimeout(() => {
-        setShowSkipButton(true);
-      }, adDisplayTime * 1000); // Usar adDisplayTime para anúncios reais
+      return () => clearInterval(timer);
     }
+  }, [isTestMode]);
 
-    return () => {
-      clearInterval(timer);
-      clearTimeout(adTimer);
-      if (adContainerRef.current) {
-        adContainerRef.current.innerHTML = ''; // Limpar conteúdo do anúncio injetado
-      }
-    };
-  }, [isTestMode, adCode, adDisplayTime]); // Adicionar adDisplayTime às dependências
+  useEffect(() => {
+    // Execute ad scripts when component mounts and we have real ad code
+    if (!isTestMode && adCode && adContainerRef.current) {
+      const container = adContainerRef.current;
+      container.innerHTML = adCode;
+
+      // Execute any scripts in the ad code inside the container (not in <head>)
+      const scripts = Array.from(container.querySelectorAll('script'));
+      scripts.forEach((oldScript) => {
+        const newScript = document.createElement('script');
+
+        // copy all attributes
+        Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+
+        if (oldScript.src) {
+          newScript.src = oldScript.src;
+          newScript.async = true;
+        } else {
+          newScript.text = oldScript.text || '';
+        }
+
+        oldScript.parentNode?.replaceChild(newScript, oldScript);
+      });
+
+      // Show skip button after 5 seconds for real ads
+      const timer = setTimeout(() => {
+        setShowSkipButton(true);
+      }, 5000);
+
+      return () => {
+        clearTimeout(timer);
+        if (adContainerRef.current) {
+          adContainerRef.current.innerHTML = '';
+        }
+      };
+    } else if (!isTestMode && !adCode) {
+      // If no adCode, still show skip button after a delay
+      const timer = setTimeout(() => {
+        setShowSkipButton(true);
+      }, 5000); // Default delay for ads
+
+      return () => clearTimeout(timer);
+    }
+  }, [isTestMode, adCode]);
 
   const renderTestAd = () => (
     <div className="text-center space-y-6 p-8 bg-gray-100 rounded-lg">

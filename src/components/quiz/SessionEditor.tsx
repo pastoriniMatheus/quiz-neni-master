@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -298,30 +299,14 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           </div>
           
           {session.showAd && (
-            <div className="space-y-3">
-              <div>
-                <Label>Código do Anúncio</Label>
-                <Textarea
-                  value={session.adCode || ''}
-                  onChange={(e) => onUpdate({ adCode: e.target.value })}
-                  placeholder="Cole aqui o código HTML do seu anúncio (Google AdSense, etc.)"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <Label>Tempo de Exibição do Anúncio (segundos)</Label>
-                <Input
-                  type="number"
-                  value={session.adDisplayTime || 5} // Novo campo
-                  onChange={(e) => onUpdate({ adDisplayTime: Number(e.target.value) })}
-                  min="1"
-                  max="60"
-                  placeholder="5"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Tempo para o botão "Continuar" aparecer neste anúncio.
-                </p>
-              </div>
+            <div>
+              <Label>Código do Anúncio</Label>
+              <Textarea
+                value={session.adCode || ''}
+                onChange={(e) => onUpdate({ adCode: e.target.value })}
+                placeholder="Cole aqui o código HTML do seu anúncio (Google AdSense, etc.)"
+                rows={3}
+              />
             </div>
           )}
         </div>
