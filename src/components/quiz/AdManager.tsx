@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -73,6 +72,13 @@ export const AdManager: React.FC<AdManagerProps> = ({
           adContainerRef.current.innerHTML = '';
         }
       };
+    } else if (!isTestMode && !adCode) {
+      // If no adCode, still show skip button after a delay
+      const timer = setTimeout(() => {
+        setShowSkipButton(true);
+      }, 5000); // Default delay for ads
+
+      return () => clearTimeout(timer);
     }
   }, [isTestMode, adCode]);
 
@@ -116,6 +122,7 @@ export const AdManager: React.FC<AdManagerProps> = ({
         </div>
       )}
       
+      {/* Botão "Continuar" sempre visível após o delay, independentemente do adCode */}
       {showSkipButton && (
         <Button onClick={onAdComplete} className="gap-2">
           Continuar

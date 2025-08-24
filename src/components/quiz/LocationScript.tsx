@@ -28,6 +28,14 @@ export const LocationScript: React.FC<LocationScriptProps> = ({ customScript }) 
       const mostrarCidade = async () => {
         try {
           const response = await fetch("https://api-bdc.io/data/reverse-geocode-client");
+          
+          // VERIFICAÇÃO ADICIONADA: Checar se a resposta é OK antes de tentar parsear JSON
+          if (!response.ok) {
+            console.error("Erro ao obter a cidade: Resposta da API não foi OK", response.status);
+            setLocation('Brasil');
+            return;
+          }
+
           const data = await response.json();
           
           const cidade = data.city || 'Cidade';
