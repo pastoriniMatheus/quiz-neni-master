@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 
 interface LocationScriptProps {
@@ -96,10 +95,13 @@ export const LocationScript: React.FC<LocationScriptProps> = ({ customScript }) 
         <span>📍</span>
         <span>{location}</span>
       </div>
-      <div className="flex items-center gap-2">
-        <span>👥</span>
-        <span className="font-bold text-green-600">{peopleCount}</span>
-        <span>pessoas em {location.split(',')[0]} respondendo neste momento</span>
+      {/* Ajustado para melhor alinhamento e quebra de linha em telas pequenas */}
+      <div className="flex items-center flex-wrap justify-center gap-x-1">
+        <span className="flex items-center gap-1">
+          <span>👥</span>
+          <span className="font-bold text-green-600">{peopleCount}</span>
+        </span>
+        <span className="text-center">pessoas em {location.split(',')[0]} respondendo neste momento</span>
       </div>
     </div>
   );
