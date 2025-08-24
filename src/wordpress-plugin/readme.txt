@@ -3,7 +3,7 @@ Contributors: NeniMaster
 Tags: quiz, interactive, engagement, supabase
 Requires at least: 5.0
 Tested up to: 6.5
-Stable tag: 1.3.1
+Stable tag: 1.3.4
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -29,19 +29,25 @@ Para exibir um quiz em uma página ou post, use o shortcode gerado na página de
 
 == Changelog ==
 
+= 1.3.4 =
+* **Correção Crítica**: Restaurado o código da página de administração do plugin que havia sido removido acidentalmente.
+* **Correção**: Reforçada a lógica de roteamento da API para evitar conflitos entre a listagem de quizzes e a busca de um quiz específico.
+
+= 1.3.3 =
+* **Correção**: Simplificada a rota da API para `.../quiz-api/{slug}` para evitar erros de roteamento 404.
+* **Correção**: Corrigido o componente de shortcode no painel para exibir o formato correto.
+
 = 1.3.1 =
-* **Correção Crítica**: Corrigido o handler do shortcode que não enviava a `anon key` do Supabase, impedindo a renderização do quiz nas páginas.
+* **Correção Crítica**: Corrigido o handler do shortcode que não enviava a `anon key` do Supabase.
 
 = 1.3.0 =
 * **Melhoria de UI**: A página de configurações foi completamente redesenhada com um layout de duas colunas.
-* **Melhoria de UX**: O plugin agora é um item de menu principal para acesso mais fácil.
-* **Melhoria de UX**: Adicionado um spinner de carregamento para melhor feedback visual.
 
 = 1.2.3 =
-* **Correção**: Adicionado o cabeçalho de autorização `Bearer` com a chave `anon` para compatibilidade com o gateway de funções do Supabase.
+* **Correção**: Adicionado o cabeçalho de autorização `Bearer` com a chave `anon`.
 
 = 1.2.2 =
-* **Melhoria de Debug**: Refatorado o script de admin para usar jQuery e fornecer logs de erro mais detalhados no console.
+* **Melhoria de Debug**: Refatorado o script de admin para usar jQuery e fornecer logs de erro mais detalhados.
 
 = 1.2.1 =
 * **Correção**: Corrigida a construção da URL da API no shortcode handler.
