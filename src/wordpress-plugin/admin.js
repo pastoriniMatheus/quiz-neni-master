@@ -6,8 +6,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!loadBtn) return;
 
     loadBtn.addEventListener('click', function () {
+        console.log('Botão "Carregar Quizzes" clicado.');
         const apiUrl = quizNeniMaster.apiUrl;
         const apiKey = quizNeniMaster.apiKey;
+        console.log('URL da API:', apiUrl);
+        console.log('Chave da API:', apiKey ? '...' + apiKey.slice(-4) : 'Nenhuma');
 
         if (!apiUrl || !apiKey) {
             statusEl.textContent = 'Erro: Por favor, salve a URL do Sistema e a Chave da API primeiro.';
@@ -20,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function () {
         loadBtn.disabled = true;
 
         const endpoint = apiUrl.replace(/\/$/, '') + '/functions/v1/quiz-api/quizzes';
+        console.log('Endpoint da requisição:', endpoint);
 
         fetch(endpoint, {
             method: 'GET',
@@ -29,12 +33,23 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         })
         .then(response => {
+            console.log('Resposta recebida:', response);
             if (!response.ok) {
-                throw new Error('Falha na requisição: ' + response.statusText);
+                return response.text().then(text => {
+                    let errorBody = text;
+                    try {
+                        const jsonError = JSON.parse(text);
+                        errorBody = jsonError.error || text;
+                    } catch (e) {
+                        // Ignore if text is not JSON
+                    }
+                    throw new Error(`Falha na requisição: ${response.status} ${response.statusText} - ${errorBody}`);
+                });
             }
             return response.json();
         })
         .then(quizzes => {
+            console.log('Quizzes recebidos:', quizzes);
             container.innerHTML = ''; // Limpa o container
             if (quizzes && quizzes.length > 0) {
                 quizzes.forEach(quiz => {
@@ -56,6 +71,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         })
         .catch(error => {
+            console.error('Erro detalhado ao carregar quizzes:', error);
             statusEl.textContent = 'Erro ao carregar quizzes: ' + error.message;
             statusEl.style.color = 'red';
             container.innerHTML = '';

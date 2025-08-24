@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Quiz NeniMaster
  * Description: Plugin oficial para integrar quizzes do NeniMaster no WordPress
- * Version: 1.2.0
+ * Version: 1.2.1
  * Author: NeniMaster
  */
 
@@ -27,7 +27,7 @@ class QuizNeniMaster {
             'quiz-nenimaster-admin',
             plugin_dir_url(__FILE__) . 'admin.js',
             array(),
-            '1.2.0',
+            '1.2.1',
             true
         );
         wp_localize_script('quiz-nenimaster-admin', 'quizNeniMaster', array(
@@ -118,7 +118,8 @@ class QuizNeniMaster {
             return '<!-- Erro Quiz NeniMaster: Plugin não configurado. -->';
         }
         
-        $api_endpoint = rtrim($system_url, '/') . '/functions/v1/quiz-api/quiz/' . esc_attr($atts['slug']);
+        // Corrigido: Removido o /quiz/ extra do caminho da API
+        $api_endpoint = rtrim($system_url, '/') . '/functions/v1/quiz-api/' . esc_attr($atts['slug']);
         
         $response = wp_remote_get($api_endpoint, array(
             'headers' => array('x-api-key' => $api_key),
