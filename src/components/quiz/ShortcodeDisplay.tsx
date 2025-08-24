@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +15,7 @@ export const ShortcodeDisplay: React.FC<ShortcodeDisplayProps> = ({
   slug,
   status,
 }) => {
-  const shortcode = `[quiz_builder id="${quizId}"]`;
+  const shortcode = `[quiz_nenimaster slug="${slug}"]`;
   const quizUrl = `${window.location.origin}/quiz/${slug}`;
 
   const copyShortcode = () => {

@@ -56,11 +56,11 @@ serve(async (req) => {
       return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Rota para buscar um quiz específico: GET /quiz/{slug}
-    const quizMatch = relativePath.match(/^\/quiz\/([a-zA-Z0-9-_]+)$/);
-    if (req.method === 'GET' && quizMatch) {
-      const quizIdOrSlug = quizMatch[1];
-      console.log(`[${requestId}] 🎯 Matched /quiz/{slug}. Fetching quiz by Slug:`, quizIdOrSlug);
+    // Rota para buscar um quiz específico: GET /{slug}
+    const slugMatch = relativePath.match(/^\/([a-zA-Z0-9-_]+)$/);
+    if (req.method === 'GET' && slugMatch) {
+      const quizIdOrSlug = slugMatch[1];
+      console.log(`[${requestId}] 🎯 Matched /{slug}. Fetching quiz by Slug:`, quizIdOrSlug);
       const { data, error } = await supabase
         .from('quizzes')
         .select('*')
