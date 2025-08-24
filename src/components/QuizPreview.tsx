@@ -155,13 +155,18 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
   
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Erro ao salvar resposta do quiz');
+          // Lança o objeto de erro completo para ser capturado abaixo
+          throw errorData;
         }
   
         toast.success('Respostas salvas com sucesso!');
       } catch (error: any) {
-        console.error('Erro ao submeter quiz:', error);
-        toast.error(`Não foi possível salvar a resposta: ${error.message}`);
+        console.error('Erro detalhado recebido do servidor:', error);
+        // Exibe a mensagem de erro detalhada do banco de dados
+        const errorMessage = error.details?.message 
+          ? `Erro do Banco de Dados: ${error.details.message}`
+          : error.message || 'Erro desconhecido no servidor.';
+        toast.error(errorMessage, { duration: 10000 }); // Aumenta a duração para dar tempo de ler
       }
     }
   
