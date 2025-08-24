@@ -61,8 +61,24 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
     
     // Avanço automático após pequeno delay
     setTimeout(() => {
-      handleNext();
+      proceedToNextStep();
     }, 300);
+  };
+
+  const proceedToNextStep = () => {
+    const currentSessionData = sessions[currentSession];
+    
+    // Check if current session has ad
+    if (currentSessionData?.showAd) {
+      setShowAd(true);
+      return;
+    }
+
+    if (currentSession < sessions.length - 1) {
+      setCurrentSession(currentSession + 1);
+    } else {
+      handleComplete();
+    }
   };
 
   const handleNext = () => {
@@ -89,27 +105,12 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
       }
     }
     
-    // Check if current session has ad
-    if (currentSessionData?.showAd) {
-      setShowAd(true);
-      return;
-    }
-
-    if (currentSession < sessions.length - 1) {
-      setCurrentSession(currentSession + 1);
-    } else {
-      handleComplete();
-    }
+    proceedToNextStep();
   };
 
   const handleAdComplete = () => {
     setShowAd(false);
-    
-    if (currentSession < sessions.length - 1) {
-      setCurrentSession(currentSession + 1);
-    } else {
-      handleComplete();
-    }
+    proceedToNextStep();
   };
 
   const handleComplete = async () => {
