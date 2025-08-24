@@ -16,14 +16,8 @@ serve(async (req) => {
     const requestId = crypto.randomUUID().substring(0, 8);
     console.log(`[${requestId}] 📥 ${req.method} ${req.url}`);
     
-    // Cliente para inserir respostas (pode usar ANON_KEY se RLS permitir)
-    const supabaseAnon = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')! 
-    )
-
-    // Cliente para buscar configurações do quiz (precisa de SERVICE_ROLE_KEY para bypassar RLS)
-    const supabaseService = createClient(
+    // Use o cliente Service Role para todas as operações para ignorar RLS
+    const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
@@ -44,8 +38,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Dados obrigatórios ausentes: quizId, sessionId, responseData' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // 1. Salvar a resposta no banco de dados usando o cliente ANON
-    const { data: newResponse, error: insertError } = await supabaseAnon
+    // 1. Salvar a resposta no banco de dados usando o cliente de SERVIÇO
+    const { data: newResponse, error: insertError } = await supabase
       .from('responses')
       .insert({
         quiz_id: quizId,
@@ -62,8 +56,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Erro ao salvar resposta do quiz', details: insertError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // 2. Buscar configurações do quiz para verificar webhook usando o cliente SERVICE_ROLE
-    const { data: quizSettings, error: quizError } = await supabaseService // Usar supabaseService aqui
+    // 2. Buscar configurações do quiz para verificar webhook
+    const { data: quizSettings, error: quizError } = await supabase
       .from('quizzes')
       .select('settings')
       .eq('id', quizId)
