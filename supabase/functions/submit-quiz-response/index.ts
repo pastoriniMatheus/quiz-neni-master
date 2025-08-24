@@ -21,10 +21,16 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY')! // Usamos a anon key pois a política RLS permite INSERT para qualquer um
     )
 
-    const { quizId, sessionId, userAgent, responseData } = await req.json(); // Removido ipAddress do destructuring
+    const { quizId, sessionId, userAgent, responseData } = await req.json();
 
     // Captura o endereço IP real do cliente a partir dos cabeçalhos da requisição
-    const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    let clientIp: string | null = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
+    
+    // Se o IP for 'unknown' ou não for detectado, defina como null
+    if (!clientIp || clientIp.toLowerCase() === 'unknown') {
+      clientIp = null;
+    }
+    
     console.log(`[${requestId}] 🌐 Client IP: ${clientIp}`);
 
     if (!quizId || !sessionId || !responseData) {
@@ -38,7 +44,7 @@ serve(async (req) => {
         quiz_id: quizId,
         session_id: sessionId,
         user_agent: userAgent,
-        ip_address: clientIp, // Usar o IP capturado pela Edge Function
+        ip_address: clientIp, // Usar o IP capturado e sanitizado
         data: responseData,
       })
       .select()
