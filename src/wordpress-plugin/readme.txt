@@ -3,7 +3,7 @@ Contributors: NeniMaster
 Tags: quiz, interactive, engagement, supabase
 Requires at least: 5.0
 Tested up to: 6.5
-Stable tag: 1.3.4
+Stable tag: 1.3.5
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -29,13 +29,15 @@ Para exibir um quiz em uma página ou post, use o shortcode gerado na página de
 
 == Changelog ==
 
+= 1.3.5 =
+* **Correção Crítica**: Implementado um roteador de API mais robusto para corrigir o erro 404 que impedia a listagem de quizzes no painel do WordPress.
+
 = 1.3.4 =
 * **Correção Crítica**: Restaurado o código da página de administração do plugin que havia sido removido acidentalmente.
-* **Correção**: Reforçada a lógica de roteamento da API para evitar conflitos entre a listagem de quizzes e a busca de um quiz específico.
+* **Correção**: Reforçada a lógica de roteamento da API para evitar conflitos.
 
 = 1.3.3 =
 * **Correção**: Simplificada a rota da API para `.../quiz-api/{slug}` para evitar erros de roteamento 404.
-* **Correção**: Corrigido o componente de shortcode no painel para exibir o formato correto.
 
 = 1.3.1 =
 * **Correção Crítica**: Corrigido o handler do shortcode que não enviava a `anon key` do Supabase.

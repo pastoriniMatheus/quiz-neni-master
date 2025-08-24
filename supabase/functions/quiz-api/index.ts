@@ -38,44 +38,48 @@ serve(async (req) => {
     }
 
     const url = new URL(req.url);
-    const path = url.pathname;
-    const basePath = '/functions/v1/quiz-api';
-    const relativePath = path.substring(basePath.length);
+    const pathParts = url.pathname.split('/').filter(p => p); // Divide o caminho e remove partes vazias
+    
+    const apiIndex = pathParts.indexOf('quiz-api');
+    if (apiIndex === -1) {
+        return new Response(JSON.stringify({ error: 'Endpoint inválido' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
 
+    const route = pathParts[apiIndex + 1];
+    
     // Rota para listar todos os quizzes: GET /quizzes
-    if (req.method === 'GET' && (relativePath === '/quizzes' || relativePath === '/quizzes/')) {
-      console.log(`[${requestId}] 📋 Matched /quizzes. Fetching for user:`, keyData.user_id);
-      const { data, error } = await supabase
-        .from('quizzes')
-        .select('id, title, description, slug, status')
-        .eq('user_id', keyData.user_id)
-        .eq('status', 'published')
-        .order('created_at', { ascending: false })
+    if (req.method === 'GET' && route === 'quizzes') {
+        console.log(`[${requestId}] 📋 Matched /quizzes. Fetching for user:`, keyData.user_id);
+        const { data, error } = await supabase
+            .from('quizzes')
+            .select('id, title, description, slug, status')
+            .eq('user_id', keyData.user_id)
+            .eq('status', 'published')
+            .order('created_at', { ascending: false })
 
-      if (error) throw error;
-      return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        if (error) throw error;
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Rota para buscar um quiz específico: GET /{slug} (que não seja 'quizzes')
-    const slugMatch = relativePath.match(/^\/((?!quizzes\/?$)[a-zA-Z0-9-_]+)$/);
-    if (req.method === 'GET' && slugMatch) {
-      const quizIdOrSlug = slugMatch[1];
-      console.log(`[${requestId}] 🎯 Matched /{slug}. Fetching quiz by Slug:`, quizIdOrSlug);
-      const { data, error } = await supabase
-        .from('quizzes')
-        .select('*')
-        .eq('slug', quizIdOrSlug)
-        .eq('user_id', keyData.user_id)
-        .eq('status', 'published')
-        .single()
+    // Rota para buscar um quiz específico: GET /{slug}
+    if (req.method === 'GET' && route && route !== 'quizzes') {
+        const slug = route;
+        console.log(`[${requestId}] 🎯 Matched /{slug}. Fetching quiz by Slug:`, slug);
+        const { data, error } = await supabase
+            .from('quizzes')
+            .select('*')
+            .eq('slug', slug)
+            .eq('user_id', keyData.user_id)
+            .eq('status', 'published')
+            .single()
 
-      if (error) {
-        return new Response(JSON.stringify({ error: 'Quiz não encontrado ou não publicado' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-      }
-      return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        if (error) {
+            return new Response(JSON.stringify({ error: 'Quiz não encontrado ou não publicado' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+        }
+        return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    console.log(`[${requestId}] ❌ No route matched for relative path:`, relativePath);
+    console.log(`[${requestId}] ❌ No route matched for route:`, route);
     return new Response(JSON.stringify({ error: 'Endpoint não encontrado' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   } catch (error) {
