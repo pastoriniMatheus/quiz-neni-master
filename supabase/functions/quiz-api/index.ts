@@ -37,20 +37,14 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'API Key inválida ou expirada' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const url = new URL(req.url)
-    const pathSegments = url.pathname.split('/').filter(Boolean)
-    const apiSegmentIndex = pathSegments.findIndex(p => p === 'quiz-api')
+    const url = new URL(req.url);
+    const path = url.pathname;
+    const basePath = '/functions/v1/quiz-api';
+    const relativePath = path.substring(basePath.length);
 
-    if (apiSegmentIndex === -1) {
-      return new Response(JSON.stringify({ error: 'Endpoint inválido' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
-
-    const action = pathSegments[apiSegmentIndex + 1]
-    const param = pathSegments[apiSegmentIndex + 2]
-
-    // Rota para listar todos os quizzes: GET /quiz-api/quizzes
-    if (req.method === 'GET' && action === 'quizzes') {
-      console.log(`[${requestId}] 📋 Fetching quizzes for user:`, keyData.user_id);
+    // Rota para listar todos os quizzes: GET /quizzes
+    if (req.method === 'GET' && (relativePath === '/quizzes' || relativePath === '/quizzes/')) {
+      console.log(`[${requestId}] 📋 Matched /quizzes. Fetching for user:`, keyData.user_id);
       const { data, error } = await supabase
         .from('quizzes')
         .select('id, title, description, slug, status')
@@ -62,10 +56,11 @@ serve(async (req) => {
       return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // Rota para buscar um quiz específico: GET /quiz-api/quiz/{slug}
-    if (req.method === 'GET' && action === 'quiz' && param) {
-      const quizIdOrSlug = param;
-      console.log(`[${requestId}] 🎯 Fetching specific quiz by Slug:`, quizIdOrSlug);
+    // Rota para buscar um quiz específico: GET /quiz/{slug}
+    const quizMatch = relativePath.match(/^\/quiz\/([a-zA-Z0-9-_]+)$/);
+    if (req.method === 'GET' && quizMatch) {
+      const quizIdOrSlug = quizMatch[1];
+      console.log(`[${requestId}] 🎯 Matched /quiz/{slug}. Fetching quiz by Slug:`, quizIdOrSlug);
       const { data, error } = await supabase
         .from('quizzes')
         .select('*')
@@ -80,6 +75,7 @@ serve(async (req) => {
       return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
+    console.log(`[${requestId}] ❌ No route matched for relative path:`, relativePath);
     return new Response(JSON.stringify({ error: 'Endpoint não encontrado' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   } catch (error) {
