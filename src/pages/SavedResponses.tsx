@@ -82,7 +82,7 @@ export const SavedResponses: React.FC = () => {
             id,
             title,
             slug,
-            sessions // Buscar as sessões do quiz para interpretar as respostas
+            sessions
           )
         `)
         .order('created_at', { ascending: false });
