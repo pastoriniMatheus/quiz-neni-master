@@ -61,13 +61,19 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
     
     // Avanço automático após pequeno delay
     setTimeout(() => {
-      handleNext();
+      proceedToNextStep();
     }, 300);
   };
 
   const proceedToNextStep = () => {
-    // A verificação de anúncio foi movida para handleNext.
-    // Se chegamos aqui, o anúncio (se houver) já foi exibido e concluído.
+    const currentSessionData = sessions[currentSession];
+    
+    // Check if current session has ad
+    if (currentSessionData?.showAd) {
+      setShowAd(true);
+      return;
+    }
+
     if (currentSession < sessions.length - 1) {
       setCurrentSession(currentSession + 1);
     } else {
@@ -99,19 +105,12 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
       }
     }
     
-    // Check if current session has ad and show it BEFORE proceeding
-    if (currentSessionData?.showAd) {
-      setShowAd(true);
-      return; // Stop here, the ad will call handleAdComplete when done
-    }
-
-    // If no ad, or ad is already handled, proceed to the next step
     proceedToNextStep();
   };
 
   const handleAdComplete = () => {
     setShowAd(false);
-    proceedToNextStep(); // Agora proceedToNextStep não vai mais verificar o anúncio
+    proceedToNextStep();
   };
 
   const handleComplete = async () => {
