@@ -7,17 +7,17 @@ import { Label } from '@/components/ui/label';
 import { Quiz } from '@/types/quiz';
 import { AdManager } from '@/components/quiz/AdManager';
 import { QuizFooter } from '@/components/quiz/QuizFooter';
-import { supabase } from '@/integrations/supabase/client'; // Importar supabase para chamar a edge function
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface QuizPreviewProps {
   quiz: Quiz;
-  footerSettings?: any; // Adicionado para receber as configurações do rodapé
+  footerSettings?: any;
 }
 
 const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
   const [currentSession, setCurrentSession] = useState(0);
-  const [answers, setAnswers] = useState<{ [key: string]: string }>({}); // Chave como string para IDs de sessão
+  const [answers, setAnswers] = useState<{ [key: string]: string }>({});
   const [formData, setFormData] = useState<{ [key: string]: string }>({});
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -26,7 +26,6 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
   const [showFinalAd, setShowFinalAd] = useState(false);
   const [redirectCountdown, setRedirectCountdown] = useState(0);
 
-  // Mock data das sessões do quiz (apenas se quiz.sessions estiver vazio)
   const sessions = quiz.sessions.length > 0 ? quiz.sessions : [
     {
       id: 'mock_q1',
@@ -49,17 +48,15 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
       type: 'form' as const,
       title: 'Complete seus dados para receber as melhores ofertas',
       showAd: false,
-      formFields: { name: true, email: true }, // Removido phone e message para simplificar o mock
+      formFields: { name: true, email: true },
       required: true,
     }
   ];
 
-  // Avanço automático para perguntas
   const handleAnswerSelect = (option: string) => {
     const currentSessionData = sessions[currentSession];
     setAnswers({ ...answers, [currentSessionData.id]: option });
     
-    // Avanço automático após pequeno delay
     setTimeout(() => {
       proceedToNextStep();
     }, 300);
@@ -68,7 +65,6 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
   const proceedToNextStep = () => {
     const currentSessionData = sessions[currentSession];
     
-    // Check if current session has ad
     if (currentSessionData?.showAd) {
       setShowAd(true);
       return;
@@ -84,19 +80,16 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
   const handleNext = () => {
     const currentSessionData = sessions[currentSession];
 
-    // Validação para sessões obrigatórias
     if (currentSessionData.required) {
       if (currentSessionData.type === 'question' && !answers[currentSessionData.id]) {
         toast.error('Por favor, selecione uma opção para continuar.');
         return;
       }
       if (currentSessionData.type === 'form') {
-        // Validação de campos de formulário
         const formFields = currentSessionData.formFields || {};
         let missingFields = [];
         if (formFields.name && !formData.name?.trim()) missingFields.push('Nome');
         if (formFields.email && !formData.email?.trim()) missingFields.push('E-mail');
-        // Adicione validação para outros campos se necessário
         
         if (missingFields.length > 0) {
           toast.error(`Por favor, preencha os campos obrigatórios: ${missingFields.join(', ')}`);
@@ -142,35 +135,27 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
       const userAgent = navigator.userAgent;
   
       try {
-        const response = await fetch(`https://riqfafiivzpotfjqfscd.supabase.co/functions/v1/submit-quiz-response`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        const { error } = await supabase.functions.invoke('submit-quiz-response', {
+          body: {
             quizId: quiz.id,
             sessionId,
             userAgent,
             responseData: allResponses,
-          }),
+          },
         });
-  
-        if (!response.ok) {
-          const errorData = await response.json();
-          // Lança o objeto de erro completo para ser capturado abaixo
-          throw errorData;
+
+        if (error) {
+          throw error;
         }
   
         toast.success('Respostas salvas com sucesso!');
       } catch (error: any) {
-        console.error('Erro detalhado recebido do servidor:', error);
-        // Exibe a mensagem de erro detalhada do banco de dados
-        const errorMessage = error.details?.message 
-          ? `Erro do Banco de Dados: ${error.details.message}`
-          : error.message || 'Erro desconhecido no servidor.';
-        toast.error(errorMessage, { duration: 10000 }); // Aumenta a duração para dar tempo de ler
+        console.error('Erro ao invocar a função:', error);
+        const errorMessage = error.message || 'Erro desconhecido no servidor.';
+        toast.error(`Não foi possível salvar a resposta: ${errorMessage}`, { duration: 10000 });
       }
     }
   
-    // Sempre prossiga para a conclusão, mesmo que o salvamento falhe
     proceedToCompletion();
   };
 
@@ -189,7 +174,6 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
         setRedirectCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
-            // Redirecionar para a URL configurada
             window.open(quiz.settings.redirect.url, '_blank');
             return 0;
           }
@@ -313,7 +297,7 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
       </div>
 
       <Button 
-        onClick={handleNext} // Agora chama handleNext para validação e fluxo de anúncios
+        onClick={handleNext}
         className="w-full gap-2 text-sm"
         style={{ backgroundColor: quiz.design.primaryColor }}
       >
@@ -427,7 +411,6 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
     }
   };
 
-  // Aplicar cores do design
   const customStyles = {
     '--primary-color': quiz.design.primaryColor || '#3b82f6',
     '--secondary-color': quiz.design.secondaryColor || '#1e293b',
@@ -443,7 +426,6 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
       <div className="flex-1 pb-0">
         <div className="container mx-auto px-4 py-4" style={customStyles}>
           <div className="max-w-lg mx-auto">
-            {/* Header */}
             <div className="text-center mb-4">
               <div className="text-foreground mb-3" style={{ color: quiz.design.textColor }}>
                 <h1 className="text-xl md:text-2xl font-bold mb-1">{quiz.title || 'Quiz Preview'}</h1>
@@ -453,7 +435,6 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
               {!showResult && !isLoading && !showAd && !showFinalAd && renderProgressBar()}
             </div>
 
-            {/* Content */}
             <Card className="bg-background border-0 shadow-lg mb-4" style={{ backgroundColor: quiz.design.backgroundColor }}>
               <CardContent className="p-4 md:p-6" style={{ color: quiz.design.textColor }}>
                 {getCurrentContent()}
@@ -463,7 +444,6 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
         </div>
       </div>
 
-      {/* Footer único - agora recebe as configurações passadas */}
       <QuizFooter footerSettings={footerSettings} />
     </div>
   );
