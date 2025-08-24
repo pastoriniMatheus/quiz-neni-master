@@ -113,65 +113,61 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
     proceedToNextStep();
   };
 
+  const proceedToCompletion = () => {
+    const ms = (quiz.settings.processingTime ?? 3) * 1000;
+    setTimeout(() => {
+      setIsLoading(false);
+      setIsCompleted(true);
+  
+      if (quiz.settings.showFinalAd) {
+        setShowFinalAd(true);
+      } else {
+        setShowResult(true);
+        startRedirectCountdown();
+      }
+    }, ms);
+  };
+
   const handleComplete = async () => {
     if (!quiz.id) {
       toast.error('Por favor, salve o quiz antes de submeter respostas.');
-      setIsLoading(false);
       return;
     }
-
+  
     setIsLoading(true);
-    
-    // Coletar todas as respostas
-    const allResponses = {
-      ...answers,
-      ...formData,
-    };
-
-    // Gerar um ID de sessão único para esta submissão
-    const sessionId = crypto.randomUUID();
-    const userAgent = navigator.userAgent;
-    // ipAddress será capturado pela Edge Function, não precisa ser enviado do cliente
-
-    try {
-      // Chamar a Edge Function para salvar a resposta
-      const response = await fetch(`https://riqfafiivzpotfjqfscd.supabase.co/functions/v1/submit-quiz-response`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          quizId: quiz.id,
-          sessionId,
-          userAgent,
-          responseData: allResponses,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao salvar resposta do quiz');
-      }
-
-      toast.success('Respostas salvas com sucesso!');
-
-    } catch (error: any) {
-      console.error('Erro ao submeter quiz:', error);
-      toast.error(`Erro ao salvar respostas: ${error.message}`);
-    } finally {
-      // Continuar com o fluxo de exibição de resultado/redirecionamento
-      const ms = ((quiz.settings.processingTime ?? 3) * 1000);
-      setTimeout(() => {
-        setIsLoading(false);
-        setIsCompleted(true);
-        
-        if (quiz.settings.showFinalAd) {
-          setShowFinalAd(true);
-        } else {
-          setShowResult(true);
-          startRedirectCountdown();
+  
+    if (quiz.settings.saveResponses) {
+      const allResponses = { ...answers, ...formData };
+      const sessionId = crypto.randomUUID();
+      const userAgent = navigator.userAgent;
+  
+      try {
+        const response = await fetch(`https://riqfafiivzpotfjqfscd.supabase.co/functions/v1/submit-quiz-response`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            quizId: quiz.id,
+            sessionId,
+            userAgent,
+            responseData: allResponses,
+          }),
+        });
+  
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Erro ao salvar resposta do quiz');
         }
-      }, ms);
+  
+        toast.success('Respostas salvas com sucesso!');
+        proceedToCompletion(); // Prossiga apenas se o salvamento for bem-sucedido
+      } catch (error: any) {
+        console.error('Erro ao submeter quiz:', error);
+        toast.error(`Erro ao salvar respostas: ${error.message}`);
+        setIsLoading(false); // Pare o carregamento em caso de erro
+      }
+    } else {
+      // Se o salvamento não estiver ativado, prossiga diretamente
+      proceedToCompletion();
     }
   };
 
