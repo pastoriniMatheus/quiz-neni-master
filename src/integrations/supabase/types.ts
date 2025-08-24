@@ -130,7 +130,7 @@ export type Database = {
           created_at: string | null
           data: Json | null
           id: number
-          ip_address: unknown | null
+          ip_address: string | null
           quiz_id: string
           session_id: string | null
           user_agent: string | null
@@ -139,7 +139,7 @@ export type Database = {
           created_at?: string | null
           data?: Json | null
           id?: number
-          ip_address?: unknown | null
+          ip_address?: string | null
           quiz_id: string
           session_id?: string | null
           user_agent?: string | null
@@ -148,7 +148,7 @@ export type Database = {
           created_at?: string | null
           data?: Json | null
           id?: number
-          ip_address?: unknown | null
+          ip_address?: string | null
           quiz_id?: string
           session_id?: string | null
           user_agent?: string | null
@@ -333,4 +333,4 @@ export const Constants = {
       app_role: ["admin", "user"],
     },
   },
-} as const
+} as const;
