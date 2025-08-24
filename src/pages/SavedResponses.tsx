@@ -216,6 +216,7 @@ export const SavedResponses: React.FC = () => {
                 </TableHeader>
                 <TableBody>
                   {responses.map((response) => {
+                    // Adicionado verificações de segurança para quiz e sessions
                     const quizTitle = (response.quizzes as any)?.title || 'Quiz sem título';
                     const quizSessions = (response.quizzes as any)?.sessions || [];
                     const formattedData = formatResponseData(response.data, quizSessions);

@@ -21,7 +21,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY')! // Usamos a anon key pois a política RLS permite INSERT para qualquer um
     )
 
-    const { quizId, sessionId, userAgent, ipAddress, responseData } = await req.json();
+    const { quizId, sessionId, userAgent, responseData } = await req.json(); // Removido ipAddress do destructuring
+
+    // Captura o endereço IP real do cliente a partir dos cabeçalhos da requisição
+    const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    console.log(`[${requestId}] 🌐 Client IP: ${clientIp}`);
 
     if (!quizId || !sessionId || !responseData) {
       return new Response(JSON.stringify({ error: 'Dados obrigatórios ausentes: quizId, sessionId, responseData' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -34,7 +38,7 @@ serve(async (req) => {
         quiz_id: quizId,
         session_id: sessionId,
         user_agent: userAgent,
-        ip_address: ipAddress,
+        ip_address: clientIp, // Usar o IP capturado pela Edge Function
         data: responseData,
       })
       .select()
@@ -67,7 +71,7 @@ serve(async (req) => {
             quizId,
             sessionId,
             userAgent,
-            ipAddress,
+            ipAddress: clientIp, // Enviar o IP real para o webhook
             responseData,
             timestamp: new Date().toISOString(),
           }),

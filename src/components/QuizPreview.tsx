@@ -49,7 +49,7 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
       type: 'form' as const,
       title: 'Complete seus dados para receber as melhores ofertas',
       showAd: false,
-      formFields: { name: true, email: true, phone: false, message: false },
+      formFields: { name: true, email: true }, // Removido phone e message para simplificar o mock
       required: true,
     }
   ];
@@ -124,7 +124,7 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
     // Gerar um ID de sessão único para esta submissão
     const sessionId = crypto.randomUUID();
     const userAgent = navigator.userAgent;
-    const ipAddress = 'unknown'; // O IP será capturado pela Edge Function ou Supabase automaticamente
+    // ipAddress será capturado pela Edge Function, não precisa ser enviado do cliente
 
     try {
       // Chamar a Edge Function para salvar a resposta
@@ -137,7 +137,6 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
           quizId: quiz.id,
           sessionId,
           userAgent,
-          ipAddress,
           responseData: allResponses,
         }),
       });
