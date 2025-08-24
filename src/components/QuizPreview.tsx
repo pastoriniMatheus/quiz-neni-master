@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Quiz } from '@/types/quiz';
 import { AdManager } from '@/components/quiz/AdManager';
 import { QuizFooter } from '@/components/quiz/QuizFooter';
+import { supabase } from '@/integrations/supabase/client'; // Importar supabase para chamar a edge function
+import { toast } from 'sonner';
 
 interface QuizPreviewProps {
   quiz: Quiz;
@@ -15,7 +17,7 @@ interface QuizPreviewProps {
 
 const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
   const [currentSession, setCurrentSession] = useState(0);
-  const [answers, setAnswers] = useState<{ [key: number]: string }>({});
+  const [answers, setAnswers] = useState<{ [key: string]: string }>({}); // Chave como string para IDs de sessão
   const [formData, setFormData] = useState<{ [key: string]: string }>({});
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,47 +26,38 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
   const [showFinalAd, setShowFinalAd] = useState(false);
   const [redirectCountdown, setRedirectCountdown] = useState(0);
 
-  // Mock data das sessões do quiz
+  // Mock data das sessões do quiz (apenas se quiz.sessions estiver vazio)
   const sessions = quiz.sessions.length > 0 ? quiz.sessions : [
     {
-      id: '1',
+      id: 'mock_q1',
       type: 'question' as const,
       title: 'Qual é a sua idade?',
       options: ['18-25 anos', '26-35 anos', '36-50 anos', 'Mais de 50 anos'],
-      showAd: false
+      showAd: false,
+      required: true,
     },
     {
-      id: '2',
+      id: 'mock_q2',
       type: 'question' as const,
       title: 'Qual é a sua renda mensal?',
       options: ['Até R$ 1.500', 'R$ 1.501 - R$ 3.000', 'R$ 3.001 - R$ 5.000', 'Acima de R$ 5.000'],
-      showAd: false
+      showAd: false,
+      required: true,
     },
     {
-      id: '3',
-      type: 'question' as const,
-      title: 'Você possui conta no banco?',
-      options: ['Sim, conta corrente', 'Sim, conta poupança', 'Não possuo conta', 'Possuo em mais de um banco'],
-      showAd: false
-    },
-    {
-      id: '4',
-      type: 'question' as const,
-      title: 'Para que você precisa do empréstimo?',
-      options: ['Quitação de dívidas', 'Investimento', 'Emergência', 'Compra de bens'],
-      showAd: false
-    },
-    {
-      id: '5',
+      id: 'mock_form',
       type: 'form' as const,
       title: 'Complete seus dados para receber as melhores ofertas',
-      showAd: false
+      showAd: false,
+      formFields: { name: true, email: true, phone: false, message: false },
+      required: true,
     }
   ];
 
   // Avanço automático para perguntas
-  const handleAnswerSelect = (answer: string) => {
-    setAnswers({ ...answers, [currentSession]: answer });
+  const handleAnswerSelect = (option: string) => {
+    const currentSessionData = sessions[currentSession];
+    setAnswers({ ...answers, [currentSessionData.id]: option });
     
     // Avanço automático após pequeno delay
     setTimeout(() => {
@@ -74,6 +67,27 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
 
   const handleNext = () => {
     const currentSessionData = sessions[currentSession];
+
+    // Validação para sessões obrigatórias
+    if (currentSessionData.required) {
+      if (currentSessionData.type === 'question' && !answers[currentSessionData.id]) {
+        toast.error('Por favor, selecione uma opção para continuar.');
+        return;
+      }
+      if (currentSessionData.type === 'form') {
+        // Validação de campos de formulário
+        const formFields = currentSessionData.formFields || {};
+        let missingFields = [];
+        if (formFields.name && !formData.name?.trim()) missingFields.push('Nome');
+        if (formFields.email && !formData.email?.trim()) missingFields.push('E-mail');
+        // Adicione validação para outros campos se necessário
+        
+        if (missingFields.length > 0) {
+          toast.error(`Por favor, preencha os campos obrigatórios: ${missingFields.join(', ')}`);
+          return;
+        }
+      }
+    }
     
     // Check if current session has ad
     if (currentSessionData?.showAd) {
@@ -98,23 +112,61 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
     }
   };
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     setIsLoading(true);
     
-    // Usar tempo configurável do quiz (processingTime em segundos)
-    const ms = ((quiz.settings.processingTime ?? 3) * 1000);
-    setTimeout(() => {
-      setIsLoading(false);
-      setIsCompleted(true);
-      
-      // Check if should show final ad
-      if (quiz.settings.showFinalAd) {
-        setShowFinalAd(true);
-      } else {
-        setShowResult(true);
-        startRedirectCountdown();
+    // Coletar todas as respostas
+    const allResponses = {
+      ...answers,
+      ...formData,
+    };
+
+    // Gerar um ID de sessão único para esta submissão
+    const sessionId = crypto.randomUUID();
+    const userAgent = navigator.userAgent;
+    const ipAddress = 'unknown'; // O IP será capturado pela Edge Function ou Supabase automaticamente
+
+    try {
+      // Chamar a Edge Function para salvar a resposta
+      const response = await fetch(`https://riqfafiivzpotfjqfscd.supabase.co/functions/v1/submit-quiz-response`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          quizId: quiz.id,
+          sessionId,
+          userAgent,
+          ipAddress,
+          responseData: allResponses,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao salvar resposta do quiz');
       }
-    }, ms);
+
+      toast.success('Respostas salvas com sucesso!');
+
+    } catch (error: any) {
+      console.error('Erro ao submeter quiz:', error);
+      toast.error(`Erro ao salvar respostas: ${error.message}`);
+    } finally {
+      // Continuar com o fluxo de exibição de resultado/redirecionamento
+      const ms = ((quiz.settings.processingTime ?? 3) * 1000);
+      setTimeout(() => {
+        setIsLoading(false);
+        setIsCompleted(true);
+        
+        if (quiz.settings.showFinalAd) {
+          setShowFinalAd(true);
+        } else {
+          setShowResult(true);
+          startRedirectCountdown();
+        }
+      }, ms);
+    }
   };
 
   const handleFinalAdComplete = () => {
@@ -142,19 +194,6 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
     }
   };
 
-  const handleFormSubmit = () => {
-    // Validação básica
-    const requiredFields = ['name', 'email'];
-    const missingFields = requiredFields.filter(field => !formData[field]?.trim());
-    
-    if (missingFields.length > 0) {
-      alert('Por favor, preencha todos os campos obrigatórios');
-      return;
-    }
-    
-    handleNext();
-  };
-
   const renderProgressBar = () => (
     <div className="w-full bg-muted rounded-full h-2 mb-4">
       <div 
@@ -180,17 +219,21 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
             onClick={() => handleAnswerSelect(option)}
             className="p-4 rounded-lg border-2 transition-all duration-200 text-left hover:scale-[1.02] text-sm"
             style={{ 
-              borderColor: '#e5e7eb',
-              backgroundColor: quiz.design.backgroundColor,
+              borderColor: answers[session.id] === option ? quiz.design.primaryColor : '#e5e7eb',
+              backgroundColor: answers[session.id] === option ? `${quiz.design.primaryColor}10` : quiz.design.backgroundColor,
               color: quiz.design.textColor
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = quiz.design.primaryColor;
-              e.currentTarget.style.backgroundColor = `${quiz.design.primaryColor}10`;
+              if (answers[session.id] !== option) {
+                e.currentTarget.style.borderColor = quiz.design.primaryColor;
+                e.currentTarget.style.backgroundColor = `${quiz.design.primaryColor}10`;
+              }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = '#e5e7eb';
-              e.currentTarget.style.backgroundColor = quiz.design.backgroundColor;
+              if (answers[session.id] !== option) {
+                e.currentTarget.style.borderColor = '#e5e7eb';
+                e.currentTarget.style.backgroundColor = quiz.design.backgroundColor;
+              }
             }}
           >
             {option}
@@ -210,54 +253,62 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
       </div>
 
       <div className="space-y-3 text-left">
-        <div>
-          <Label htmlFor="name" className="text-sm">Nome Completo *</Label>
-          <Input 
-            id="name" 
-            placeholder="Seu nome completo"
-            value={formData.name || ''}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="text-sm"
-          />
-        </div>
+        {session.formFields?.name && (
+          <div>
+            <Label htmlFor="name" className="text-sm">Nome Completo {session.required ? '*' : ''}</Label>
+            <Input 
+              id="name" 
+              placeholder="Seu nome completo"
+              value={formData.name || ''}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="text-sm"
+            />
+          </div>
+        )}
         
-        <div>
-          <Label htmlFor="email" className="text-sm">E-mail *</Label>
-          <Input 
-            id="email" 
-            type="email" 
-            placeholder="seu@email.com"
-            value={formData.email || ''}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="text-sm"
-          />
-        </div>
+        {session.formFields?.email && (
+          <div>
+            <Label htmlFor="email" className="text-sm">E-mail {session.required ? '*' : ''}</Label>
+            <Input 
+              id="email" 
+              type="email" 
+              placeholder="seu@email.com"
+              value={formData.email || ''}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="text-sm"
+            />
+          </div>
+        )}
         
-        <div>
-          <Label htmlFor="phone" className="text-sm">Telefone/WhatsApp</Label>
-          <Input 
-            id="phone" 
-            placeholder="(11) 99999-9999"
-            value={formData.phone || ''}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            className="text-sm"
-          />
-        </div>
+        {session.formFields?.phone && (
+          <div>
+            <Label htmlFor="phone" className="text-sm">Telefone/WhatsApp</Label>
+            <Input 
+              id="phone" 
+              placeholder="(11) 99999-9999"
+              value={formData.phone || ''}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="text-sm"
+            />
+          </div>
+        )}
         
-        <div>
-          <Label htmlFor="cpf" className="text-sm">CPF</Label>
-          <Input 
-            id="cpf" 
-            placeholder="000.000.000-00"
-            value={formData.cpf || ''}
-            onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-            className="text-sm"
-          />
-        </div>
+        {session.formFields?.message && (
+          <div>
+            <Label htmlFor="message" className="text-sm">Mensagem</Label>
+            <Input 
+              id="message" 
+              placeholder="Sua mensagem"
+              value={formData.message || ''}
+              onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+              className="text-sm"
+            />
+          </div>
+        )}
       </div>
 
       <Button 
-        onClick={handleFormSubmit} 
+        onClick={handleNext} // Agora chama handleNext para validação e fluxo de anúncios
         className="w-full gap-2 text-sm"
         style={{ backgroundColor: quiz.design.primaryColor }}
       >
