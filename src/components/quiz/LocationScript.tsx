@@ -49,7 +49,8 @@ export const LocationScript: React.FC<LocationScriptProps> = ({ customScript }) 
       // Função para atualizar o número de forma mais suave e lenta
       const atualizarNumero = () => {
         const novoNumero = gerarNumeroAleatorio();
-        const step = (novoNumero - peopleCount) / 50; // Mais passos para transição suave
+        const steps = 100; // Aumentado para 100 passos para uma transição mais suave
+        const step = (novoNumero - peopleCount) / steps; 
         let currentCount = peopleCount;
 
         const updateInterval = setInterval(() => {
@@ -60,7 +61,7 @@ export const LocationScript: React.FC<LocationScriptProps> = ({ customScript }) 
             setPeopleCount(novoNumero);
             clearInterval(updateInterval);
           }
-        }, 80); // Mais lento: 80ms entre atualizações
+        }, 100); // Aumentado para 100ms entre atualizações para uma animação mais lenta
       };
 
       // Função para determinar o tempo aleatório para a próxima atualização
@@ -95,7 +96,6 @@ export const LocationScript: React.FC<LocationScriptProps> = ({ customScript }) 
         <span>📍</span>
         <span>{location}</span>
       </div>
-      {/* Ajustado para melhor alinhamento e quebra de linha em telas pequenas */}
       <div className="flex items-center flex-wrap justify-center gap-x-1">
         <span className="flex items-center gap-1">
           <span>👥</span>
