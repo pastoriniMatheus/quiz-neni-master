@@ -10,9 +10,10 @@ import { QuizFooter } from '@/components/quiz/QuizFooter';
 
 interface QuizPreviewProps {
   quiz: Quiz;
+  footerSettings?: any; // Adicionado para receber as configurações do rodapé
 }
 
-const QuizPreview = ({ quiz }: QuizPreviewProps) => {
+const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
   const [currentSession, setCurrentSession] = useState(0);
   const [answers, setAnswers] = useState<{ [key: number]: string }>({});
   const [formData, setFormData] = useState<{ [key: string]: string }>({});
@@ -406,8 +407,8 @@ const QuizPreview = ({ quiz }: QuizPreviewProps) => {
         </div>
       </div>
 
-      {/* Footer único */}
-      <QuizFooter />
+      {/* Footer único - agora recebe as configurações passadas */}
+      <QuizFooter footerSettings={footerSettings} />
     </div>
   );
 };

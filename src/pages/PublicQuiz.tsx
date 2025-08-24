@@ -1,10 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import QuizPreview from '@/components/QuizPreview';
-import { QuizFooter } from '@/components/quiz/QuizFooter';
 import { Quiz } from '@/types/quiz';
 
 const PublicQuiz = () => {
@@ -109,11 +107,10 @@ const PublicQuiz = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Quiz Content */}
-      <QuizPreview quiz={quiz} />
+      {/* Quiz Content - now receives footerSettings */}
+      <QuizPreview quiz={quiz} footerSettings={footerSettings} />
       
-      {/* Footer with settings from quiz owner */}
-      <QuizFooter footerSettings={footerSettings} />
+      {/* REMOVIDO: O QuizFooter duplicado foi removido daqui */}
     </div>
   );
 };
