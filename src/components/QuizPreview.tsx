@@ -114,6 +114,12 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
   };
 
   const handleComplete = async () => {
+    if (!quiz.id) {
+      toast.error('Por favor, salve o quiz antes de submeter respostas.');
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     
     // Coletar todas as respostas
