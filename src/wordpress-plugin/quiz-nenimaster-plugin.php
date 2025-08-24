@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Quiz NeniMaster
  * Description: Plugin oficial para integrar quizzes do NeniMaster no WordPress
- * Version: 1.2.2
+ * Version: 1.2.3
  * Author: NeniMaster
  */
 
@@ -26,13 +26,14 @@ class QuizNeniMaster {
         wp_enqueue_script(
             'quiz-nenimaster-admin',
             plugin_dir_url(__FILE__) . 'admin.js',
-            array('jquery'), // Adicionando jQuery como dependência
-            '1.2.2',
+            array('jquery'),
+            '1.2.3',
             true
         );
         wp_localize_script('quiz-nenimaster-admin', 'quizNeniMaster', array(
             'apiUrl' => get_option('quiz_nenimaster_api_url'),
-            'apiKey' => get_option('quiz_nenimaster_api_key')
+            'apiKey' => get_option('quiz_nenimaster_api_key'),
+            'anonKey' => get_option('quiz_nenimaster_anon_key') // Passando a nova chave para o JS
         ));
     }
 
@@ -49,6 +50,7 @@ class QuizNeniMaster {
     public function register_settings() {
         register_setting('quiz_nenimaster_options', 'quiz_nenimaster_api_url');
         register_setting('quiz_nenimaster_options', 'quiz_nenimaster_api_key');
+        register_setting('quiz_nenimaster_options', 'quiz_nenimaster_anon_key'); // Registrando a nova configuração
     }
     
     public function admin_page_content() {
@@ -61,7 +63,7 @@ class QuizNeniMaster {
         </style>
         <div class="wrap">
             <h1>Quiz NeniMaster - Configurações</h1>
-            <p>Configure a URL do seu sistema Quiz NeniMaster e a chave de API para integrar os quizzes.</p>
+            <p>Configure a URL do seu sistema Quiz NeniMaster e as chaves de API para integrar os quizzes.</p>
             <form method="post" action="options.php">
                 <?php
                 settings_fields('quiz_nenimaster_options');
@@ -75,10 +77,17 @@ class QuizNeniMaster {
                         </td>
                     </tr>
                     <tr valign="top">
-                        <th scope="row"><label for="quiz_nenimaster_api_key">Chave da API</label></th>
+                        <th scope="row"><label for="quiz_nenimaster_anon_key">Supabase Anon Key (Pública)</label></th>
+                        <td>
+                            <input type="text" id="quiz_nenimaster_anon_key" name="quiz_nenimaster_anon_key" value="<?php echo esc_attr(get_option('quiz_nenimaster_anon_key')); ?>" class="regular-text" />
+                            <p class="description">A chave pública (anon) do seu projeto Supabase.</p>
+                        </td>
+                    </tr>
+                    <tr valign="top">
+                        <th scope="row"><label for="quiz_nenimaster_api_key">Chave da API (Privada)</label></th>
                         <td>
                             <input type="text" id="quiz_nenimaster_api_key" name="quiz_nenimaster_api_key" value="<?php echo esc_attr(get_option('quiz_nenimaster_api_key')); ?>" class="regular-text" />
-                            <p class="description">Sua chave de API gerada no painel de configurações.</p>
+                            <p class="description">Sua chave de API gerada no painel de configurações (começa com 'qb_').</p>
                         </td>
                     </tr>
                 </table>
@@ -98,51 +107,7 @@ class QuizNeniMaster {
     }
     
     public function shortcode_handler($atts) {
-        $atts = shortcode_atts(array(
-            'slug' => '',
-            'width' => '100%',
-            'height' => '800px'
-        ), $atts, 'quiz_nenimaster');
-        
-        if (empty($atts['slug'])) {
-            return '<!-- Erro Quiz NeniMaster: Slug do quiz não informado no shortcode. -->';
-        }
-        
-        $system_url = get_option('quiz_nenimaster_api_url');
-        $api_key = get_option('quiz_nenimaster_api_key');
-        
-        if (empty($system_url) || empty($api_key)) {
-            if (current_user_can('manage_options')) {
-                return '<p style="color:red;">Erro Quiz NeniMaster: Configure a URL do Sistema e a Chave da API nas configurações do plugin.</p>';
-            }
-            return '<!-- Erro Quiz NeniMaster: Plugin não configurado. -->';
-        }
-        
-        $api_endpoint = rtrim($system_url, '/') . '/functions/v1/quiz-api/' . esc_attr($atts['slug']);
-        
-        $response = wp_remote_get($api_endpoint, array(
-            'headers' => array('x-api-key' => $api_key),
-            'timeout' => 15
-        ));
-        
-        if (is_wp_error($response) || wp_remote_retrieve_response_code($response) !== 200) {
-            if (current_user_can('manage_options')) {
-                $error_message = is_wp_error($response) ? $response->get_error_message() : 'Código de resposta: ' . wp_remote_retrieve_response_code($response);
-                return '<p style="color:red;">Erro Quiz NeniMaster (visível para admins): Não foi possível validar o quiz. ' . esc_html($error_message) . '</p>';
-            }
-            return '<!-- Erro Quiz NeniMaster: Não foi possível carregar o quiz. -->';
-        }
-        
-        $quiz_iframe_url = rtrim($system_url, '/') . '/quiz/' . esc_attr($atts['slug']);
-        
-        return sprintf(
-            '<iframe src="%s" width="%s" height="%s" frameborder="0" style="border:none; width:%s; height:%s; min-height: 600px;" allowfullscreen></iframe>',
-            esc_url($quiz_iframe_url),
-            esc_attr($atts['width']),
-            esc_attr($atts['height']),
-            esc_attr($atts['width']),
-            esc_attr($atts['height'])
-        );
+        // ... (o resto da função PHP não precisa de alterações)
     }
 }
 

@@ -14,12 +14,14 @@ jQuery(document).ready(function($) {
         console.log('Botão "Carregar Quizzes" clicado.');
         const apiUrl = quizNeniMaster.apiUrl;
         const apiKey = quizNeniMaster.apiKey;
+        const anonKey = quizNeniMaster.anonKey; // Pegando a nova chave
         
         console.log('URL da API:', apiUrl);
+        console.log('Chave Anon:', anonKey ? '...' + anonKey.slice(-4) : 'Nenhuma');
         console.log('Chave da API:', apiKey ? '...' + apiKey.slice(-4) : 'Nenhuma');
 
-        if (!apiUrl || !apiKey) {
-            statusEl.text('Erro: Por favor, salve a URL do Sistema e a Chave da API primeiro.').css('color', 'red');
+        if (!apiUrl || !apiKey || !anonKey) {
+            statusEl.text('Erro: Por favor, preencha e salve a URL do Sistema, a Supabase Anon Key e a Chave da API.').css('color', 'red');
             return;
         }
 
@@ -30,6 +32,7 @@ jQuery(document).ready(function($) {
             url: endpoint,
             method: 'GET',
             headers: {
+                'Authorization': 'Bearer ' + anonKey, // Adicionando o cabeçalho de autorização
                 'x-api-key': apiKey
             },
             beforeSend: function() {
