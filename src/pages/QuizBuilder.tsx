@@ -108,6 +108,15 @@ export const QuizBuilder: React.FC = () => {
         settings.adDisplayTime = 5;
       }
 
+      const design = (existingQuiz.design && typeof existingQuiz.design === 'object' && !Array.isArray(existingQuiz.design))
+        ? (existingQuiz.design as unknown as QuizDesign)
+        : {
+            primaryColor: '#3b82f6',
+            secondaryColor: '#1e293b',
+            backgroundColor: '#ffffff',
+            textColor: '#1f2937'
+          };
+
       setQuiz({
         id: existingQuiz.id,
         title: existingQuiz.title || '',
