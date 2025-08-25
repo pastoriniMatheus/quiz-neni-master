@@ -12,10 +12,10 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  const requestId = crypto.randomUUID().substring(0, 8);
+  console.log(`[${requestId}] 📥 ${req.method} ${req.url}`);
+
   try {
-    const requestId = crypto.randomUUID().substring(0, 8);
-    console.log(`[${requestId}] 📥 ${req.method} ${req.url}`);
-    
     const supabaseAnon = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')! 
@@ -26,13 +26,18 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    const { quizId, sessionId, userAgent, responseData } = await req.json();
+    // Log the raw request body for debugging
+    const requestBody = await req.json();
+    console.log(`[${requestId}] Raw Request Body:`, JSON.stringify(requestBody, null, 2));
+
+    const { quizId, sessionId, userAgent, responseData } = requestBody;
     console.log(`[${requestId}] Received data: quizId=${quizId}, sessionId=${sessionId}, userAgent=${userAgent}, responseData keys=${Object.keys(responseData || {})}`);
 
     let clientIp: string | null = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
     if (clientIp) {
       clientIp = clientIp.split(',')[0].trim();
     }
+    // Ensure clientIp is null if it's an empty string or 'unknown'
     if (!clientIp || clientIp.toLowerCase() === 'unknown') {
       clientIp = null;
     }
@@ -125,7 +130,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ message: 'Resposta salva com sucesso!', responseId: newResponse.id }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   } catch (error) {
-    console.error('💥 Internal server error in Edge Function:', error);
+    console.error(`[${requestId}] 💥 Internal server error in Edge Function:`, error);
     return new Response(JSON.stringify({ error: error.message || 'Erro interno desconhecido na Edge Function' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })
