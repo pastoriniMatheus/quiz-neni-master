@@ -14,19 +14,21 @@ export const LocationScript: React.FC<LocationScriptProps> = ({ customScript }) 
 
     if (customScript) {
       try {
+        // Criar um container temporário para parsear o HTML
         const tempContainer = document.createElement('div');
         tempContainer.innerHTML = customScript;
 
+        // Iterar sobre os filhos do container temporário
         Array.from(tempContainer.children).forEach(child => {
           let elementToAppend: HTMLElement;
           if (child.tagName === 'SCRIPT') {
-            // Recria o elemento script para garantir que ele seja executado
+            // Se for um script, recriá-lo para garantir que seja executado
             const newScript = document.createElement('script');
             Array.from(child.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
             newScript.textContent = child.textContent; // Copia o conteúdo para scripts inline
             elementToAppend = newScript;
           } else {
-            // Para outros elementos HTML, clona e prepara para anexar
+            // Para outros elementos HTML, clonar e preparar para anexar
             elementToAppend = child.cloneNode(true) as HTMLElement;
           }
           document.head.appendChild(elementToAppend);
@@ -46,13 +48,14 @@ export const LocationScript: React.FC<LocationScriptProps> = ({ customScript }) 
         try {
           const response = await fetch("https://api-bdc.io/data/reverse-geocode-client");
           
-          if (!response.ok) {
-            console.error("Erro ao obter a cidade: Resposta da API não foi OK", response.status);
+          const contentType = response.headers.get("content-type");
+          if (!response.ok || !contentType || !contentType.includes("application/json")) {
+            console.error("Erro ao obter a cidade: Resposta da API não foi OK ou não é JSON", response.status, contentType);
             setLocation('Brasil');
             return;
           }
 
-          const data = await response.json();
+          const data = await response.json(); // Adicionado try-catch aqui
           
           const cidade = data.city || 'Cidade';
           const estado = data.principalSubdivision || 'Estado';

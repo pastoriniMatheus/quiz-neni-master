@@ -29,51 +29,52 @@ serve(async (req) => {
     )
 
     const { quizId, sessionId, userAgent, responseData } = await req.json();
+    console.log(`[${requestId}] Received data: quizId=${quizId}, sessionId=${sessionId}, userAgent=${userAgent}, responseData keys=${Object.keys(responseData || {})}`);
 
-    // Captura o endereço IP real do cliente a partir dos cabeçalhos da requisição
     let clientIp: string | null = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
-    
-    // Se o IP for 'unknown' ou não for detectado, defina como null
     if (!clientIp || clientIp.toLowerCase() === 'unknown') {
       clientIp = null;
     }
-    
     console.log(`[${requestId}] 🌐 Client IP: ${clientIp}`);
 
     if (!quizId || !sessionId || !responseData) {
+      console.error(`[${requestId}] ❌ Missing required data: quizId=${quizId}, sessionId=${sessionId}, responseData=${responseData}`);
       return new Response(JSON.stringify({ error: 'Dados obrigatórios ausentes: quizId, sessionId, responseData' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     // 1. Salvar a resposta no banco de dados usando o cliente ANON
+    console.log(`[${requestId}] Attempting to insert response for quizId=${quizId} with sessionId=${sessionId}`);
     const { data: newResponse, error: insertError } = await supabaseAnon
       .from('responses')
       .insert({
         quiz_id: quizId,
         session_id: sessionId,
         user_agent: userAgent,
-        ip_address: clientIp, // Usar o IP capturado e sanitizado
+        ip_address: clientIp,
         data: responseData,
       })
       .select()
       .single();
 
     if (insertError) {
-      console.error(`[${requestId}] 💥 Erro ao inserir resposta:`, insertError);
+      console.error(`[${requestId}] 💥 Error inserting response:`, insertError);
       return new Response(JSON.stringify({ error: 'Erro ao salvar resposta do quiz', details: insertError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
+    console.log(`[${requestId}] ✅ Response inserted with ID: ${newResponse.id}`);
 
     // 2. Buscar configurações do quiz para verificar webhook usando o cliente SERVICE_ROLE
-    const { data: quizSettings, error: quizError } = await supabaseService // Usar supabaseService aqui
+    console.log(`[${requestId}] Attempting to fetch quiz settings for quizId=${quizId} using service role client.`);
+    const { data: quizSettings, error: quizError } = await supabaseService
       .from('quizzes')
       .select('settings')
       .eq('id', quizId)
       .single();
 
     if (quizError) {
-      console.warn(`[${requestId}] ⚠️ Não foi possível buscar configurações do quiz ${quizId} para webhook:`, quizError.message);
+      console.warn(`[${requestId}] ⚠️ Could not fetch quiz settings for quizId=${quizId}:`, quizError.message);
     } else if (quizSettings?.settings?.webhook?.enabled && quizSettings.settings.webhook.url) {
       const webhookUrl = quizSettings.settings.webhook.url;
-      console.log(`[${requestId}] 📡 Enviando dados para webhook: ${webhookUrl}`);
+      console.log(`[${requestId}] 📡 Sending data to webhook: ${webhookUrl}`);
       try {
         const webhookResponse = await fetch(webhookUrl, {
           method: 'POST',
@@ -84,27 +85,29 @@ serve(async (req) => {
             quizId,
             sessionId,
             userAgent,
-            ipAddress: clientIp, // Enviar o IP real para o webhook
+            ipAddress: clientIp,
             responseData,
             timestamp: new Date().toISOString(),
           }),
         });
 
         if (!webhookResponse.ok) {
-          console.error(`[${requestId}] ❌ Erro ao enviar para webhook (${webhookUrl}): ${webhookResponse.status} ${webhookResponse.statusText}`);
+          console.error(`[${requestId}] ❌ Error sending to webhook (${webhookUrl}): ${webhookResponse.status} ${webhookResponse.statusText}`);
         } else {
-          console.log(`[${requestId}] ✅ Webhook enviado com sucesso para ${webhookUrl}`);
+          console.log(`[${requestId}] ✅ Webhook sent successfully to ${webhookUrl}`);
         }
       } catch (webhookFetchError) {
-        console.error(`[${requestId}] 💥 Erro de rede ao enviar para webhook (${webhookUrl}):`, webhookFetchError);
+        console.error(`[${requestId}] 💥 Network error sending to webhook (${webhookUrl}):`, webhookFetchError);
       }
+    } else {
+      console.log(`[${requestId}] Webhook not enabled or URL missing for quizId=${quizId}.`);
     }
 
-    console.log(`[${requestId}] ✅ Resposta do quiz ${quizId} salva e processada.`);
+    console.log(`[${requestId}] ✅ Quiz response ${newResponse.id} saved and processed.`);
     return new Response(JSON.stringify({ message: 'Resposta salva com sucesso!', responseId: newResponse.id }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   } catch (error) {
-    console.error('💥 Internal server error:', error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    console.error('💥 Internal server error in Edge Function:', error);
+    return new Response(JSON.stringify({ error: error.message || 'Erro interno desconhecido na Edge Function' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })
