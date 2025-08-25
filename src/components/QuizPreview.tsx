@@ -119,26 +119,18 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
     const userAgent = navigator.userAgent;
   
     try {
-      // Obter a chave anon do Supabase client
-      const anonKey = supabase.supabaseKey;
-
-      const response = await fetch(`https://riqfafiivzpotfjqfscd.supabase.co/functions/v1/submit-quiz-response`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': anonKey, // Adicionar a chave API aqui
-        },
-        body: JSON.stringify({
+      // Usar supabase.functions.invoke() para chamar a Edge Function
+      const { error } = await supabase.functions.invoke('submit-quiz-response', {
+        body: {
           quizId: quiz.id,
           sessionId,
           userAgent,
           responseData: allResponses,
-        }),
+        },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao salvar resposta do quiz');
+      if (error) {
+        throw error;
       }
   
       toast.success('Respostas salvas com sucesso!');

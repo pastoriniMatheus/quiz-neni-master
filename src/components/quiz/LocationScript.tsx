@@ -10,24 +10,34 @@ export const LocationScript: React.FC<LocationScriptProps> = ({ customScript }) 
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
-    let scriptElement: HTMLScriptElement | null = null; // Para rastrear o script adicionado
+    const appendedElements: HTMLElement[] = []; // Para rastrear elementos adicionados para limpeza
+
+    // Função para injetar scripts e outros elementos HTML
+    const injectCustomScript = (scriptContent: string) => {
+      try {
+        const tempContainer = document.createElement('div');
+        tempContainer.innerHTML = scriptContent;
+
+        Array.from(tempContainer.children).forEach(child => {
+          let elementToAppend: HTMLElement;
+          if (child.tagName === 'SCRIPT') {
+            const newScript = document.createElement('script');
+            Array.from(child.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+            newScript.textContent = child.textContent;
+            elementToAppend = newScript;
+          } else {
+            elementToAppend = child.cloneNode(true) as HTMLElement;
+          }
+          document.head.appendChild(elementToAppend);
+          appendedElements.push(elementToAppend);
+        });
+      } catch (error) {
+        console.error('Erro ao analisar ou executar script personalizado:', error);
+      }
+    };
 
     if (customScript) {
-      try {
-        // Tenta criar um elemento script e definir seu texto
-        scriptElement = document.createElement('script');
-        scriptElement.textContent = customScript;
-        document.head.appendChild(scriptElement);
-        
-        return () => {
-          // Limpa o script quando o componente é desmontado
-          if (scriptElement && document.head.contains(scriptElement)) {
-            document.head.removeChild(scriptElement);
-          }
-        };
-      } catch (error) {
-        console.error('Erro ao executar script personalizado:', error);
-      }
+      injectCustomScript(customScript);
     } else {
       // Lógica existente para obter localização e atualizar contador
       const mostrarCidade = async () => {
@@ -87,13 +97,15 @@ export const LocationScript: React.FC<LocationScriptProps> = ({ customScript }) 
       mostrarCidade();
       
       setTimeout(iniciarAtualizacoes, 1000);
-
-      return () => {
-        if (intervalId) {
-          clearTimeout(intervalId);
-        }
-      };
     }
+
+    return () => {
+      // Limpa todos os elementos que foram adicionados pelo customScript
+      appendedElements.forEach(el => el.parentNode?.removeChild(el));
+      if (intervalId) {
+        clearTimeout(intervalId);
+      }
+    };
   }, [customScript]); 
 
   return (
