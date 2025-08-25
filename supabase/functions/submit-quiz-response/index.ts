@@ -16,13 +16,11 @@ serve(async (req) => {
     const requestId = crypto.randomUUID().substring(0, 8);
     console.log(`[${requestId}] 📥 ${req.method} ${req.url}`);
     
-    // Cliente para inserir respostas (usando ANON_KEY, agora que as permissões RLS foram ajustadas)
     const supabaseAnon = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')! 
     )
 
-    // Cliente para buscar configurações do quiz (precisa de SERVICE_ROLE_KEY para bypassar RLS)
     const supabaseService = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -45,9 +43,26 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Dados obrigatórios ausentes: quizId, sessionId, responseData' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
+    // --- NOVO LOGGING: Verificar status do quiz com SERVICE_ROLE_KEY ---
+    console.log(`[${requestId}] Verifying quiz status for quizId: ${quizId} using service role client.`);
+    const { data: quizCheck, error: quizCheckError } = await supabaseService
+      .from('quizzes')
+      .select('status')
+      .eq('id', quizId)
+      .single();
+
+    if (quizCheckError) {
+      console.error(`[${requestId}] 💥 Error fetching quiz status with service role:`, quizCheckError);
+    } else if (quizCheck) {
+      console.log(`[${requestId}] ✅ Quiz status (via service role): ${quizCheck.status}`);
+    } else {
+      console.log(`[${requestId}] ⚠️ Quiz not found with service role for ID: ${quizId}`);
+    }
+    // --- FIM NOVO LOGGING ---
+
     // 1. Salvar a resposta no banco de dados usando o cliente ANON
     console.log(`[${requestId}] Attempting to insert response for quizId=${quizId} with sessionId=${sessionId} using ANON_KEY.`);
-    const { data: newResponse, error: insertError } = await supabaseAnon // <-- Reverted to supabaseAnon
+    const { data: newResponse, error: insertError } = await supabaseAnon
       .from('responses')
       .insert({
         quiz_id: quizId,
