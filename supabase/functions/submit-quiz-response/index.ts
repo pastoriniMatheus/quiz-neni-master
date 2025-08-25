@@ -28,8 +28,10 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    const { quizId, sessionId, userAgent, responseData } = await req.json();
-    console.log(`[${requestId}] Received data: quizId=${quizId}, sessionId=${sessionId}, userAgent=${userAgent}, responseData keys=${Object.keys(responseData || {})}`);
+    const requestBody = await req.json();
+    const { quizId, sessionId, userAgent, responseData } = requestBody;
+    console.log(`[${requestId}] Received request body:`, requestBody);
+    console.log(`[${requestId}] Extracted data: quizId=${quizId}, sessionId=${sessionId}, userAgent=${userAgent}, responseData keys=${Object.keys(responseData || {})}`);
 
     let clientIp: string | null = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
     if (!clientIp || clientIp.toLowerCase() === 'unknown') {
@@ -57,7 +59,7 @@ serve(async (req) => {
       .single();
 
     if (insertError) {
-      console.error(`[${requestId}] 💥 Error inserting response:`, insertError);
+      console.error(`[${requestId}] 💥 Error inserting response into 'responses' table:`, insertError);
       return new Response(JSON.stringify({ error: 'Erro ao salvar resposta do quiz', details: insertError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
     console.log(`[${requestId}] ✅ Response inserted with ID: ${newResponse.id}`);
@@ -74,7 +76,7 @@ serve(async (req) => {
       console.warn(`[${requestId}] ⚠️ Could not fetch quiz settings for quizId=${quizId}:`, quizError.message);
     } else if (quizSettings?.settings?.webhook?.enabled && quizSettings.settings.webhook.url) {
       const webhookUrl = quizSettings.settings.webhook.url;
-      console.log(`[${requestId}] 📡 Sending data to webhook: ${webhookUrl}`);
+      console.log(`[${requestId}] 📡 Webhook enabled. Sending data to: ${webhookUrl}`);
       try {
         const webhookResponse = await fetch(webhookUrl, {
           method: 'POST',
@@ -94,7 +96,7 @@ serve(async (req) => {
         if (!webhookResponse.ok) {
           console.error(`[${requestId}] ❌ Error sending to webhook (${webhookUrl}): ${webhookResponse.status} ${webhookResponse.statusText}`);
         } else {
-          console.log(`[${requestId}] ✅ Webhook sent successfully to ${webhookUrl}`);
+          console.log(`[${requestId}] ✅ Webhook sent successfully to ${webhookUrl}. Status: ${webhookResponse.status}`);
         }
       } catch (webhookFetchError) {
         console.error(`[${requestId}] 💥 Network error sending to webhook (${webhookUrl}):`, webhookFetchError);
@@ -103,7 +105,7 @@ serve(async (req) => {
       console.log(`[${requestId}] Webhook not enabled or URL missing for quizId=${quizId}.`);
     }
 
-    console.log(`[${requestId}] ✅ Quiz response ${newResponse.id} saved and processed.`);
+    console.log(`[${requestId}] ✅ Quiz response ${newResponse.id} saved and processed. Returning success.`);
     return new Response(JSON.stringify({ message: 'Resposta salva com sucesso!', responseId: newResponse.id }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   } catch (error) {
