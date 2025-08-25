@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,149 +44,9 @@ export const Dashboard: React.FC = () => {
     try {
       console.log('Iniciando download do plugin...');
       
-      // Conteúdo do plugin PHP
-      const pluginContent = `<?php
-/**
- * Plugin Name: Quiz NeniMaster
- * Description: Plugin oficial para integrar quizzes do NeniMaster no WordPress
- * Version: 1.0.0
- * Author: NeniMaster
- */
-
-// Evitar acesso direto
-if (!defined('ABSPATH')) {
-    exit;
-}
-
-class QuizNeniMaster {
-    
-    public function __construct() {
-        add_action('init', array($this, 'init'));
-        add_action('admin_menu', array($this, 'admin_menu'));
-        add_shortcode('quiz_nenimaster', array($this, 'shortcode_handler'));
-    }
-    
-    public function init() {
-        // Inicialização do plugin
-    }
-    
-    public function admin_menu() {
-        add_options_page(
-            'Quiz NeniMaster',
-            'Quiz NeniMaster',
-            'manage_options',
-            'quiz-nenimaster',
-            array($this, 'admin_page')
-        );
-    }
-    
-    public function admin_page() {
-        if (isset($_POST['save_settings'])) {
-            update_option('quiz_nenimaster_api_url', sanitize_text_field($_POST['api_url']));
-            update_option('quiz_nenimaster_api_key', sanitize_text_field($_POST['api_key']));
-            echo '<div class="notice notice-success"><p>Configurações salvas!</p></div>';
-        }
-        
-        $api_url = get_option('quiz_nenimaster_api_url', '');
-        $api_key = get_option('quiz_nenimaster_api_key', '');
-        ?>
-        <div class="wrap">
-            <h1>Quiz NeniMaster - Configurações</h1>
-            <form method="post">
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">URL da API</th>
-                        <td>
-                            <input type="url" name="api_url" value="<?php echo esc_attr($api_url); ?>" class="regular-text" />
-                            <p class="description">Ex: https://quiz.paineldedisparos.com.br ou https://riqfafiivzpotfjqfscd.supabase.co</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">Chave da API</th>
-                        <td>
-                            <input type="text" name="api_key" value="<?php echo esc_attr($api_key); ?>" class="regular-text" />
-                        </td>
-                    </tr>
-                </table>
-                <?php submit_button('Salvar Configurações', 'primary', 'save_settings'); ?>
-            </form>
-        </div>
-        <?php
-    }
-    
-    public function shortcode_handler($atts) {
-        $atts = shortcode_atts(array(
-            'slug' => '',
-            'width' => '100%',
-            'height' => '600px'
-        ), $atts);
-        
-        if (empty($atts['slug'])) {
-            return '<p>Erro: Slug do quiz não informado.</p>';
-        }
-        
-        $api_url = get_option('quiz_nenimaster_api_url', '');
-        $api_key = get_option('quiz_nenimaster_api_key', '');
-        
-        if (empty($api_url) || empty($api_key)) {
-            return '<p>Erro: Configure a URL da API e chave nas configurações do plugin.</p>';
-        }
-        
-        $quiz_url = rtrim($api_url, '/') . '/quiz/' . esc_attr($atts['slug']);
-        
-        return sprintf(
-            '<iframe src="%s" width="%s" height="%s" frameborder="0" style="border:none; width:%s; height:%s;"></iframe>',
-            esc_url($quiz_url),
-            esc_attr($atts['width']),
-            esc_attr($atts['height']),
-            esc_attr($atts['width']),
-            esc_attr($atts['height'])
-        );
-    }
-}
-
-// Inicializar o plugin
-new QuizNeniMaster();
-?>`;
-
-      const readmeContent = `=== Quiz NeniMaster ===
-Contributors: nenimaster
-Tags: quiz, interactive, engagement
-Requires at least: 5.0
-Tested up to: 6.4
-Stable tag: 1.0.0
-License: GPL v2 or later
-
-Plugin oficial para integrar quizzes do NeniMaster no WordPress.
-
-== Description ==
-
-O Quiz NeniMaster permite integrar facilmente seus quizzes interativos em qualquer site WordPress usando um simples shortcode.
-
-= Funcionalidades =
-
-* Integração simples com shortcode
-* Configuração fácil no painel admin
-* Suporte a domínio personalizado
-* Auto-redimensionamento responsivo
-
-= Uso =
-
-1. Instale e ative o plugin
-2. Vá em Configurações > Quiz NeniMaster
-3. Configure sua URL da API e chave
-4. Use o shortcode: [quiz_nenimaster slug="seu-quiz"]
-
-== Installation ==
-
-1. Faça upload do plugin para '/wp-content/plugins/'
-2. Ative o plugin através do menu 'Plugins' no WordPress
-3. Configure em Configurações > Quiz NeniMaster
-
-== Changelog ==
-
-= 1.0.0 =
-* Versão inicial do plugin`;
+      // Fetch plugin content from the dedicated file
+      const pluginContent = await fetch('/src/wordpress-plugin/quiz-nenimaster-plugin.php').then(res => res.text());
+      const readmeContent = await fetch('/src/wordpress-plugin/readme.txt').then(res => res.text());
       
       // Importar JSZip dinamicamente
       const JSZip = (await import('jszip')).default;
@@ -256,7 +115,7 @@ O Quiz NeniMaster permite integrar facilmente seus quizzes interativos em qualqu
           </CardHeader>
           <CardContent>
             <Button 
-              onClick={() => navigate('/quiz-builder')} 
+              onClick={() => navigate('/quiz/novo')} 
               className="w-full"
               size="sm"
             >
@@ -299,7 +158,7 @@ O Quiz NeniMaster permite integrar facilmente seus quizzes interativos em qualqu
                   <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-sm">Nenhum quiz criado ainda</p>
                   <Button 
-                    onClick={() => navigate('/quiz-builder')} 
+                    onClick={() => navigate('/quiz/novo')} 
                     className="mt-4"
                     size="sm"
                   >
@@ -325,7 +184,7 @@ O Quiz NeniMaster permite integrar facilmente seus quizzes interativos em qualqu
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => navigate(`/quiz-builder?id=${quiz.id}`)}
+                        onClick={() => navigate(`/quiz/${quiz.id}/editar`)}
                       >
                         <Settings className="h-4 w-4" />
                       </Button>
@@ -349,3 +208,5 @@ O Quiz NeniMaster permite integrar facilmente seus quizzes interativos em qualqu
     </div>
   );
 };
+
+export default Dashboard;
