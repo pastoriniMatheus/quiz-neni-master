@@ -43,7 +43,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Dados obrigatórios ausentes: quizId, sessionId, responseData' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // --- NOVO LOGGING: Verificar status do quiz com SERVICE_ROLE_KEY ---
+    // --- LOGGING: Verificar status do quiz com SERVICE_ROLE_KEY ---
     console.log(`[${requestId}] Verifying quiz status for quizId: ${quizId} using service role client.`);
     const { data: quizCheck, error: quizCheckError } = await supabaseService
       .from('quizzes')
@@ -58,7 +58,7 @@ serve(async (req) => {
     } else {
       console.log(`[${requestId}] ⚠️ Quiz not found with service role for ID: ${quizId}`);
     }
-    // --- FIM NOVO LOGGING ---
+    // --- FIM LOGGING ---
 
     // 1. Salvar a resposta no banco de dados usando o cliente ANON
     console.log(`[${requestId}] Attempting to insert response for quizId=${quizId} with sessionId=${sessionId} using ANON_KEY.`);
