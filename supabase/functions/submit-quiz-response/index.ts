@@ -16,28 +16,28 @@ serve(async (req) => {
     const requestId = crypto.randomUUID().substring(0, 8);
     console.log(`[${requestId}] 📥 ${req.method} ${req.url}`);
     
-    // Cliente para inserir respostas (pode usar ANON_KEY se RLS permitir)
     const supabaseAnon = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')! 
     )
 
-    // Cliente para buscar configurações do quiz (precisa de SERVICE_ROLE_KEY para bypassar RLS)
     const supabaseService = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    const requestBody = await req.json();
-    const { quizId, sessionId, userAgent, responseData } = requestBody;
-    console.log(`[${requestId}] Received request body:`, requestBody);
-    console.log(`[${requestId}] Extracted data: quizId=${quizId}, sessionId=${sessionId}, userAgent=${userAgent}, responseData keys=${Object.keys(responseData || {})}`);
+    const { quizId, sessionId, userAgent, responseData } = await req.json();
+    console.log(`[${requestId}] Received data: quizId=${quizId}, sessionId=${sessionId}, userAgent=${userAgent}, responseData keys=${Object.keys(responseData || {})}`);
 
     let clientIp: string | null = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
+    if (clientIp) {
+      // Extract the first IP address if there are multiple (e.g., from a proxy chain)
+      clientIp = clientIp.split(',')[0].trim();
+    }
     if (!clientIp || clientIp.toLowerCase() === 'unknown') {
       clientIp = null;
     }
-    console.log(`[${requestId}] 🌐 Client IP: ${clientIp}`);
+    console.log(`[${requestId}] 🌐 Processed Client IP: ${clientIp}`);
 
     if (!quizId || !sessionId || !responseData) {
       console.error(`[${requestId}] ❌ Missing required data: quizId=${quizId}, sessionId=${sessionId}, responseData=${responseData}`);
