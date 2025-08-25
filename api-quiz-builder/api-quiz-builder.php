@@ -35,4 +35,8 @@ function run_api_quiz_builder() {
 }
 run_api_quiz_builder();
 
+// Register activation hook for database setup
+// Using __FILE__ ensures the hook is registered for this specific plugin file.
+register_activation_hook( __FILE__, array( 'API_Quiz_Builder_DB', 'install' ) );
+
 ?>

@@ -86,7 +86,9 @@ class API_Quiz_Builder {
      * @access   private
      */
     private function load_dependencies() {
+        // Load the loader first, as it's used by this class
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-api-quiz-builder-loader.php';
+        
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-api-quiz-builder-db.php';
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'admin/class-api-quiz-builder-admin.php';
         require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-api-quiz-builder-shortcode.php';
@@ -155,8 +157,7 @@ class API_Quiz_Builder {
      */
     public function run() {
         $this->loader->run();
-        // Register activation hook for database setup
-        register_activation_hook( plugin_dir_path( dirname( __FILE__ ) ) . 'api-quiz-builder.php', array( 'API_Quiz_Builder_DB', 'install' ) );
+        // The activation hook is now registered in the main plugin file (api-quiz-builder.php)
     }
 
     /**
@@ -188,47 +189,6 @@ class API_Quiz_Builder {
      */
     public function get_version() {
         return $this->version;
-    }
-}
-
-// This class is a generic loader for WordPress hooks.
-// It's a common pattern in WP plugin development to centralize hook management.
-// I'll create a minimal version of it.
-class API_Quiz_Builder_Loader {
-    protected $actions;
-    protected $filters;
-
-    public function __construct() {
-        $this->actions = array();
-        $this->filters = array();
-    }
-
-    public function add_action( $hook, $component, $callback, $priority = 10, $accepted_args = 1 ) {
-        $this->actions = $this->add( $this->actions, $hook, $component, $callback, $priority, $accepted_args );
-    }
-
-    public function add_filter( $hook, $component, $callback, $priority = 10, $accepted_args = 1 ) {
-        $this->filters = $this->add( $this->filters, $hook, $component, $callback, $priority, $accepted_args );
-    }
-
-    private function add( $hooks, $hook, $component, $callback, $priority, $accepted_args ) {
-        $hooks[] = array(
-            'hook'          => $hook,
-            'component'     => $component,
-            'callback'      => $callback,
-            'priority'      => $priority,
-            'accepted_args' => $accepted_args
-        );
-        return $hooks;
-    }
-
-    public function run() {
-        foreach ( $this->filters as $hook ) {
-            add_filter( $hook['hook'], array( $hook['component'], $hook['callback'] ), $hook['priority'], $hook['accepted_args'] );
-        }
-        foreach ( $this->actions as $hook ) {
-            add_action( $hook['hook'], array( $hook['component'], $hook['callback'] ), $hook['priority'], $hook['accepted_args'] );
-        }
     }
 }
 ?>
