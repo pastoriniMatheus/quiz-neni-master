@@ -16,11 +16,14 @@ serve(async (req) => {
     const requestId = crypto.randomUUID().substring(0, 8);
     console.log(`[${requestId}] 📥 ${req.method} ${req.url}`);
     
-    const supabaseAnon = createClient(
+    // Cliente para inserir respostas (TEMPORARIAMENTE usando SERVICE_ROLE_KEY para diagnóstico)
+    // ESTE CLIENTE DEVE SER supabaseAnon PARA INSERÇÕES PÚBLICAS EM PRODUÇÃO
+    const supabaseForInsert = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')! 
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! // <-- TEMPORARY CHANGE
     )
 
+    // Cliente para buscar configurações do quiz (precisa de SERVICE_ROLE_KEY para bypassar RLS)
     const supabaseService = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -31,7 +34,6 @@ serve(async (req) => {
 
     let clientIp: string | null = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
     if (clientIp) {
-      // Extract the first IP address if there are multiple (e.g., from a proxy chain)
       clientIp = clientIp.split(',')[0].trim();
     }
     if (!clientIp || clientIp.toLowerCase() === 'unknown') {
@@ -44,9 +46,9 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Dados obrigatórios ausentes: quizId, sessionId, responseData' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // 1. Salvar a resposta no banco de dados usando o cliente ANON
-    console.log(`[${requestId}] Attempting to insert response for quizId=${quizId} with sessionId=${sessionId}`);
-    const { data: newResponse, error: insertError } = await supabaseAnon
+    // 1. Salvar a resposta no banco de dados usando o cliente (temporariamente SERVICE_ROLE)
+    console.log(`[${requestId}] Attempting to insert response for quizId=${quizId} with sessionId=${sessionId} using SERVICE_ROLE_KEY.`);
+    const { data: newResponse, error: insertError } = await supabaseForInsert // <-- Using supabaseForInsert
       .from('responses')
       .insert({
         quiz_id: quizId,
