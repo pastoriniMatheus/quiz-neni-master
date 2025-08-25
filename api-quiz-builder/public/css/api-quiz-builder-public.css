@@ -1,0 +1,267 @@
+/* Basic styling for the quiz renderer */
+.api-quiz-builder-container {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background-color: #fff;
+    font-family: sans-serif;
+    color: #333;
+}
+
+.api-quiz-builder-container .loading-message {
+    text-align: center;
+    font-style: italic;
+    color: #666;
+}
+
+.api-quiz-builder-quiz-title {
+    text-align: center;
+    font-size: 1.8em;
+    margin-bottom: 10px;
+    color: var(--text-color, #333);
+}
+
+.api-quiz-builder-quiz-description {
+    text-align: center;
+    font-size: 1em;
+    color: var(--text-color, #666);
+    margin-bottom: 20px;
+}
+
+.api-quiz-builder-progress-bar {
+    width: 100%;
+    background-color: #e0e0e0;
+    border-radius: 5px;
+    height: 8px;
+    margin-bottom: 20px;
+}
+
+.api-quiz-builder-progress-fill {
+    height: 100%;
+    width: 0%;
+    background-color: var(--primary-color, #007bff);
+    border-radius: 5px;
+    transition: width 0.5s ease-in-out;
+}
+
+.api-quiz-builder-session-content {
+    padding: 15px;
+    text-align: center;
+}
+
+.api-quiz-builder-question-title {
+    font-size: 1.5em;
+    margin-bottom: 20px;
+    color: var(--text-color, #333);
+}
+
+.api-quiz-builder-options-grid {
+    display: grid;
+    gap: 10px;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.api-quiz-builder-option-button {
+    background-color: var(--background-color, #f8f8f8);
+    border: 2px solid var(--secondary-color, #ccc);
+    color: var(--text-color, #333);
+    padding: 12px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: all 0.2s ease-in-out;
+    width: 100%;
+    text-align: left;
+}
+
+.api-quiz-builder-option-button:hover {
+    background-color: var(--secondary-color, #e0e0e0);
+    color: var(--primary-color-foreground, #fff); /* Assuming a foreground color for secondary */
+    border-color: var(--primary-color, #007bff);
+}
+
+.api-quiz-builder-option-button.selected {
+    background-color: var(--primary-color, #007bff);
+    color: var(--primary-color-foreground, #fff);
+    border-color: var(--primary-color, #007bff);
+}
+
+.api-quiz-builder-form-fields {
+    display: grid;
+    gap: 15px;
+    max-width: 400px;
+    margin: 0 auto;
+    text-align: left;
+}
+
+.api-quiz-builder-form-fields label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: var(--text-color, #333);
+}
+
+.api-quiz-builder-form-fields input,
+.api-quiz-builder-form-fields textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1em;
+    box-sizing: border-box;
+    color: #333;
+    background-color: var(--background-color, #fff);
+}
+
+.api-quiz-builder-form-fields input:focus,
+.api-quiz-builder-form-fields textarea:focus {
+    border-color: var(--primary-color, #007bff);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.api-quiz-builder-navigation-buttons {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.api-quiz-builder-button {
+    background-color: var(--primary-color, #007bff);
+    color: var(--primary-color-foreground, #fff);
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1em;
+    transition: background-color 0.2s ease-in-out;
+    margin: 0 5px;
+}
+
+.api-quiz-builder-button:hover {
+    background-color: var(--primary-color-dark, #0056b3);
+}
+
+.api-quiz-builder-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.api-quiz-builder-ad-container {
+    min-height: 200px; /* Ensure ad container has some height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f0f0f0;
+    border: 1px dashed #ccc;
+    padding: 20px;
+    margin-bottom: 20px;
+    color: #666;
+    font-style: italic;
+}
+
+.api-quiz-builder-ad-container.test-mode {
+    background-color: #e6f7ff;
+    border-color: #91d5ff;
+    color: #1890ff;
+}
+
+.api-quiz-builder-ad-message {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: var(--text-color, #333);
+}
+
+.api-quiz-builder-loading-screen {
+    text-align: center;
+    padding: 50px 20px;
+}
+
+.api-quiz-builder-loading-spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-top: 4px solid var(--primary-color, #007bff);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.api-quiz-builder-result-screen {
+    text-align: center;
+    padding: 50px 20px;
+}
+
+.api-quiz-builder-result-icon {
+    font-size: 3em;
+    color: green;
+    margin-bottom: 20px;
+}
+
+.api-quiz-builder-result-title {
+    font-size: 2em;
+    margin-bottom: 10px;
+    color: var(--text-color, #333);
+}
+
+.api-quiz-builder-result-description {
+    font-size: 1em;
+    color: var(--text-color, #666);
+    margin-bottom: 20px;
+}
+
+.api-quiz-builder-redirect-countdown {
+    font-size: 0.9em;
+    color: var(--text-color, #666);
+    margin-top: 10px;
+}
+
+/* Footer styles */
+.api-quiz-builder-footer {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-top: 1px solid #eee;
+    text-align: center;
+    font-size: 0.85em;
+    color: #777;
+}
+
+.api-quiz-builder-footer a {
+    color: var(--primary-color, #007bff);
+    text-decoration: none;
+}
+
+.api-quiz-builder-footer a:hover {
+    text-decoration: underline;
+}
+
+.api-quiz-builder-footer-location,
+.api-quiz-builder-footer-counter {
+    margin-bottom: 5px;
+}
+
+.api-quiz-builder-footer-location span,
+.api-quiz-builder-footer-counter span {
+    margin: 0 3px;
+}
+
+.api-quiz-builder-footer-location .icon,
+.api-quiz-builder-footer-counter .icon {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+
+.api-quiz-builder-footer-location .text-green-600 {
+    color: #28a745; /* Example green color */
+}
