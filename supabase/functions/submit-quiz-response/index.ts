@@ -16,58 +16,29 @@ serve(async (req) => {
   console.log(`[${requestId}] 📥 ${req.method} ${req.url}`);
 
   try {
-    const supabaseAnon = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')! 
-    )
-
     const supabaseService = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Log the raw request body for debugging
     const requestBody = await req.json();
-    console.log(`[${requestId}] Raw Request Body:`, JSON.stringify(requestBody, null, 2));
-
     const { quizId, sessionId, userAgent, responseData } = requestBody;
-    console.log(`[${requestId}] Received data: quizId=${quizId}, sessionId=${sessionId}, userAgent=${userAgent}, responseData keys=${Object.keys(responseData || {})}`);
 
     let clientIp: string | null = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
     if (clientIp) {
       clientIp = clientIp.split(',')[0].trim();
     }
-    // Ensure clientIp is null if it's an empty string or 'unknown'
     if (!clientIp || clientIp.toLowerCase() === 'unknown') {
       clientIp = null;
     }
-    console.log(`[${requestId}] 🌐 Processed Client IP: ${clientIp}`);
 
     if (!quizId || !sessionId || !responseData) {
-      console.error(`[${requestId}] ❌ Missing required data: quizId=${quizId}, sessionId=${sessionId}, responseData=${responseData}`);
       return new Response(JSON.stringify({ error: 'Dados obrigatórios ausentes: quizId, sessionId, responseData' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // --- LOGGING: Verificar status do quiz com SERVICE_ROLE_KEY ---
-    console.log(`[${requestId}] Verifying quiz status for quizId: ${quizId} using service role client.`);
-    const { data: quizCheck, error: quizCheckError } = await supabaseService
-      .from('quizzes')
-      .select('status')
-      .eq('id', quizId)
-      .single();
-
-    if (quizCheckError) {
-      console.error(`[${requestId}] 💥 Error fetching quiz status with service role:`, quizCheckError);
-    } else if (quizCheck) {
-      console.log(`[${requestId}] ✅ Quiz status (via service role): ${quizCheck.status}`);
-    } else {
-      console.log(`[${requestId}] ⚠️ Quiz not found with service role for ID: ${quizId}`);
-    }
-    // --- FIM LOGGING ---
-
-    // 1. Salvar a resposta no banco de dados usando o cliente ANON
-    console.log(`[${requestId}] Attempting to insert response for quizId=${quizId} with sessionId=${sessionId} using ANON_KEY.`);
-    const { data: newResponse, error: insertError } = await supabaseAnon
+    // 1. Salvar a resposta no banco de dados usando o cliente SERVICE_ROLE para bypassar RLS
+    console.log(`[${requestId}] Attempting to insert response for quizId=${quizId} using SERVICE_ROLE_KEY.`);
+    const { data: newResponse, error: insertError } = await supabaseService
       .from('responses')
       .insert({
         quiz_id: quizId,
@@ -85,8 +56,7 @@ serve(async (req) => {
     }
     console.log(`[${requestId}] ✅ Response inserted with ID: ${newResponse.id}`);
 
-    // 2. Buscar configurações do quiz para verificar webhook usando o cliente SERVICE_ROLE
-    console.log(`[${requestId}] Attempting to fetch quiz settings for quizId=${quizId} using service role client.`);
+    // 2. Buscar configurações do quiz para verificar webhook
     const { data: quizSettings, error: quizError } = await supabaseService
       .from('quizzes')
       .select('settings')
@@ -99,11 +69,9 @@ serve(async (req) => {
       const webhookUrl = quizSettings.settings.webhook.url;
       console.log(`[${requestId}] 📡 Webhook enabled. Sending data to: ${webhookUrl}`);
       try {
-        const webhookResponse = await fetch(webhookUrl, {
+        await fetch(webhookUrl, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             quizId,
             sessionId,
@@ -113,24 +81,15 @@ serve(async (req) => {
             timestamp: new Date().toISOString(),
           }),
         });
-
-        if (!webhookResponse.ok) {
-          console.error(`[${requestId}] ❌ Error sending to webhook (${webhookUrl}): ${webhookResponse.status} ${webhookResponse.statusText}`);
-        } else {
-          console.log(`[${requestId}] ✅ Webhook sent successfully to ${webhookUrl}. Status: ${webhookResponse.status}`);
-        }
       } catch (webhookFetchError) {
         console.error(`[${requestId}] 💥 Network error sending to webhook (${webhookUrl}):`, webhookFetchError);
       }
-    } else {
-      console.log(`[${requestId}] Webhook not enabled or URL missing for quizId=${quizId}.`);
     }
 
-    console.log(`[${requestId}] ✅ Quiz response ${newResponse.id} saved and processed. Returning success.`);
     return new Response(JSON.stringify({ message: 'Resposta salva com sucesso!', responseId: newResponse.id }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   } catch (error) {
     console.error(`[${requestId}] 💥 Internal server error in Edge Function:`, error);
-    return new Response(JSON.stringify({ error: error.message || 'Erro interno desconhecido na Edge Function' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    return new Response(JSON.stringify({ error: error.message || 'Erro interno desconhecido' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })
