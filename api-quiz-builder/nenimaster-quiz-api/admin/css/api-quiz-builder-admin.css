@@ -1,0 +1,43 @@
+/* Basic styling for admin page */
+#api-quiz-builder-quiz-list table {
+    margin-top: 20px;
+}
+
+#api-quiz-builder-quiz-list code {
+    background-color: #f0f0f0;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: monospace;
+}
+
+.quiz-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #eee;
+    margin-bottom: 5px;
+    background-color: #fff;
+}
+
+.quiz-list-item .title {
+    font-weight: bold;
+}
+
+.quiz-list-item .shortcode {
+    font-family: monospace;
+    background-color: #f9f9f9;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.spinner {
+    visibility: hidden;
+    float: right;
+    margin-top: 5px;
+    margin-left: 10px;
+}
+
+.spinner.is-active {
+    visibility: visible;
+}

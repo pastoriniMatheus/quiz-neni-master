@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name: Quiz NeniMaster
- * Description: Plugin oficial para integrar quizzes do NeniMaster no WordPress
- * Version: 1.0.0
+ * Plugin Name: Quiz NeniMaster (Iframe)
+ * Description: Plugin oficial para integrar quizzes do NeniMaster no WordPress via iframe.
+ * Version: 1.0.1
  * Author: NeniMaster
  */
 
@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class QuizNeniMaster {
+class QuizNeniMaster_Iframe_Plugin {
     
     public function __construct() {
         add_action('init', array($this, 'init'));
@@ -21,16 +21,6 @@ class QuizNeniMaster {
     
     public function init() {
         // Inicialização do plugin
-    }
-    
-    public function admin_menu() {
-        add_options_page(
-            'Quiz NeniMaster',
-            'Quiz NeniMaster',
-            'manage_options',
-            'quiz-nenimaster',
-            array($this, 'admin_page')
-        );
     }
     
     public function admin_page() {
@@ -44,7 +34,7 @@ class QuizNeniMaster {
         $api_key = get_option('quiz_nenimaster_api_key', '');
         ?>
         <div class="wrap">
-            <h1>Quiz NeniMaster - Configurações</h1>
+            <h1>Quiz NeniMaster (Iframe) - Configurações</h1>
             <form method="post">
                 <table class="form-table">
                     <tr>
@@ -100,5 +90,5 @@ class QuizNeniMaster {
 }
 
 // Inicializar o plugin
-new QuizNeniMaster();
+new QuizNeniMaster_Iframe_Plugin();
 ?>
