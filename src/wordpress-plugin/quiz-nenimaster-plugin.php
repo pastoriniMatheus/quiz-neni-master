@@ -3,7 +3,7 @@
  * Plugin Name: Quiz NeniMaster (Iframe)
  * Description: Plugin oficial para integrar quizzes do NeniMaster no WordPress via iframe.
  * Version: 1.0.1
- * Author: NeniMaster
+ * Author: Matheus Pastorini
  */
 
 // Evitar acesso direto
