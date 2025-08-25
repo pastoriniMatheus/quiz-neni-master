@@ -106,7 +106,39 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
     proceedToNextStep();
   };
 
-  const proceedToCompletion = () => {
+  const handleComplete = async () => {
+    if (!quiz.id) {
+      toast.error('Por favor, salve o quiz antes de submeter respostas.');
+      return;
+    }
+  
+    setIsLoading(true);
+  
+    const allResponses = { ...answers, ...formData };
+    const sessionId = crypto.randomUUID();
+    const userAgent = navigator.userAgent;
+  
+    try {
+      const { error } = await supabase.functions.invoke('submit-quiz-response', {
+        body: {
+          quizId: quiz.id,
+          sessionId,
+          userAgent,
+          responseData: allResponses,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+  
+      toast.success('Respostas salvas com sucesso!');
+    } catch (error: any) {
+      console.error('Erro ao invocar a função:', error);
+      const errorMessage = error.message || 'Erro desconhecido no servidor.';
+      toast.error(`Não foi possível salvar a resposta: ${errorMessage}`, { duration: 10000 });
+    }
+  
     const ms = (quiz.settings.processingTime ?? 3) * 1000;
     setTimeout(() => {
       setIsLoading(false);
@@ -119,44 +151,6 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
         startRedirectCountdown();
       }
     }, ms);
-  };
-
-  const handleComplete = async () => {
-    if (!quiz.id) {
-      toast.error('Por favor, salve o quiz antes de submeter respostas.');
-      return;
-    }
-  
-    setIsLoading(true);
-  
-    if (quiz.settings.saveResponses) {
-      const allResponses = { ...answers, ...formData };
-      const sessionId = crypto.randomUUID();
-      const userAgent = navigator.userAgent;
-  
-      try {
-        const { error } = await supabase.functions.invoke('submit-quiz-response', {
-          body: {
-            quizId: quiz.id,
-            sessionId,
-            userAgent,
-            responseData: allResponses,
-          },
-        });
-
-        if (error) {
-          throw error;
-        }
-  
-        toast.success('Respostas salvas com sucesso!');
-      } catch (error: any) {
-        console.error('Erro ao invocar a função:', error);
-        const errorMessage = error.message || 'Erro desconhecido no servidor.';
-        toast.error(`Não foi possível salvar a resposta: ${errorMessage}`, { duration: 10000 });
-      }
-    }
-  
-    proceedToCompletion();
   };
 
   const handleFinalAdComplete = () => {

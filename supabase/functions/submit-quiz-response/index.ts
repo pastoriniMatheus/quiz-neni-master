@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.208.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,13 +16,13 @@ serve(async (req) => {
     const requestId = crypto.randomUUID().substring(0, 8);
     console.log(`[${requestId}] 📥 ${req.method} ${req.url}`);
     
-    // Cliente para operações públicas (usa chave anônima, respeita RLS)
+    // Cliente para inserir respostas (pode usar ANON_KEY se RLS permitir)
     const supabaseAnon = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')! 
     )
 
-    // Cliente para operações privilegiadas (usa chave de serviço, ignora RLS)
+    // Cliente para buscar configurações do quiz (precisa de SERVICE_ROLE_KEY para bypassar RLS)
     const supabaseService = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -33,6 +33,7 @@ serve(async (req) => {
     // Captura o endereço IP real do cliente a partir dos cabeçalhos da requisição
     let clientIp: string | null = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip');
     
+    // Se o IP for 'unknown' ou não for detectado, defina como null
     if (!clientIp || clientIp.toLowerCase() === 'unknown') {
       clientIp = null;
     }
@@ -43,15 +44,14 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Dados obrigatórios ausentes: quizId, sessionId, responseData' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // 1. Salva a resposta usando o cliente ANÔNIMO.
-    // A política RLS permitirá isso se o quiz estiver publicado.
+    // 1. Salvar a resposta no banco de dados usando o cliente ANON
     const { data: newResponse, error: insertError } = await supabaseAnon
       .from('responses')
       .insert({
         quiz_id: quizId,
         session_id: sessionId,
         user_agent: userAgent,
-        ip_address: clientIp,
+        ip_address: clientIp, // Usar o IP capturado e sanitizado
         data: responseData,
       })
       .select()
@@ -62,8 +62,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Erro ao salvar resposta do quiz', details: insertError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // 2. Busca configurações de webhook usando o cliente de SERVIÇO (privilegiado).
-    const { data: quizSettings, error: quizError } = await supabaseService
+    // 2. Buscar configurações do quiz para verificar webhook usando o cliente SERVICE_ROLE
+    const { data: quizSettings, error: quizError } = await supabaseService // Usar supabaseService aqui
       .from('quizzes')
       .select('settings')
       .eq('id', quizId)
@@ -84,7 +84,7 @@ serve(async (req) => {
             quizId,
             sessionId,
             userAgent,
-            ipAddress: clientIp,
+            ipAddress: clientIp, // Enviar o IP real para o webhook
             responseData,
             timestamp: new Date().toISOString(),
           }),
