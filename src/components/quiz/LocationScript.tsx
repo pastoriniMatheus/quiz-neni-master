@@ -10,34 +10,20 @@ export const LocationScript: React.FC<LocationScriptProps> = ({ customScript }) 
 
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
-    const appendedElements: HTMLElement[] = []; // Para rastrear elementos adicionados para limpeza
+    let scriptElement: HTMLScriptElement | null = null; // Para rastrear o script adicionado
 
     if (customScript) {
       try {
-        // Criar um container temporário para parsear o HTML
-        const tempContainer = document.createElement('div');
-        tempContainer.innerHTML = customScript;
-
-        // Iterar sobre os filhos do container temporário
-        Array.from(tempContainer.children).forEach(child => {
-          let elementToAppend: HTMLElement;
-          if (child.tagName === 'SCRIPT') {
-            // Se for um script, recriá-lo para garantir que seja executado
-            const newScript = document.createElement('script');
-            Array.from(child.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-            newScript.textContent = child.textContent; // Copia o conteúdo para scripts inline
-            elementToAppend = newScript;
-          } else {
-            // Para outros elementos HTML, clonar e preparar para anexar
-            elementToAppend = child.cloneNode(true) as HTMLElement;
-          }
-          document.head.appendChild(elementToAppend);
-          appendedElements.push(elementToAppend); // Rastreia para limpeza
-        });
-
+        // Tenta criar um elemento script e definir seu texto
+        scriptElement = document.createElement('script');
+        scriptElement.textContent = customScript;
+        document.head.appendChild(scriptElement);
+        
         return () => {
-          // Limpa todos os elementos que foram adicionados
-          appendedElements.forEach(el => el.parentNode?.removeChild(el));
+          // Limpa o script quando o componente é desmontado
+          if (scriptElement && document.head.contains(scriptElement)) {
+            document.head.removeChild(scriptElement);
+          }
         };
       } catch (error) {
         console.error('Erro ao executar script personalizado:', error);
@@ -55,7 +41,7 @@ export const LocationScript: React.FC<LocationScriptProps> = ({ customScript }) 
             return;
           }
 
-          const data = await response.json(); // Adicionado try-catch aqui
+          const data = await response.json();
           
           const cidade = data.city || 'Cidade';
           const estado = data.principalSubdivision || 'Estado';
