@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -10,7 +9,8 @@ import {
   Shield,
   Menu,
   X,
-  Download
+  Download,
+  Code
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -60,6 +60,52 @@ export const Sidebar: React.FC = () => {
     } catch (error) {
       console.error('Erro ao baixar plugin:', error);
       toast.error('Erro ao baixar o plugin. Tente novamente.');
+    }
+  };
+
+  const downloadApiPlugin = async () => {
+    try {
+      const jszip = (await import('jszip')).default;
+      const zip = new jszip();
+
+      // Fetch plugin files
+      const mainPhp = await fetch('/api-quiz-builder/api-quiz-builder.php').then(res => res.text());
+      const coreClass = await fetch('/api-quiz-builder/includes/class-api-quiz-builder.php').then(res => res.text());
+      const dbClass = await fetch('/api-quiz-builder/includes/class-api-quiz-builder-db.php').then(res => res.text());
+      const shortcodeClass = await fetch('/api-quiz-builder/includes/class-api-quiz-builder-shortcode.php').then(res => res.text());
+      const restApiClass = await fetch('/api-quiz-builder/includes/class-api-quiz-builder-rest-api.php').then(res => res.text());
+      const adminClass = await fetch('/api-quiz-builder/admin/class-api-quiz-builder-admin.php').then(res => res.text());
+      const adminCss = await fetch('/api-quiz-builder/admin/css/api-quiz-builder-admin.css').then(res => res.text());
+      const adminJs = await fetch('/api-quiz-builder/admin/js/api-quiz-builder-admin.js').then(res => res.text());
+      const publicCss = await fetch('/api-quiz-builder/public/css/api-quiz-builder-public.css').then(res => res.text());
+      const publicJs = await fetch('/api-quiz-builder/public/js/api-quiz-renderer.js').then(res => res.text());
+
+      // Add files to zip
+      zip.file('api-quiz-builder/api-quiz-builder.php', mainPhp);
+      zip.file('api-quiz-builder/includes/class-api-quiz-builder.php', coreClass);
+      zip.file('api-quiz-builder/includes/class-api-quiz-builder-db.php', dbClass);
+      zip.file('api-quiz-builder/includes/class-api-quiz-builder-shortcode.php', shortcodeClass);
+      zip.file('api-quiz-builder/includes/class-api-quiz-builder-rest-api.php', restApiClass);
+      zip.file('api-quiz-builder/admin/class-api-quiz-builder-admin.php', adminClass);
+      zip.file('api-quiz-builder/admin/css/api-quiz-builder-admin.css', adminCss);
+      zip.file('api-quiz-builder/admin/js/api-quiz-builder-admin.js', adminJs);
+      zip.file('api-quiz-builder/public/css/api-quiz-builder-public.css', publicCss);
+      zip.file('api-quiz-builder/public/js/api-quiz-renderer.js', publicJs);
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = window.URL.createObjectURL(content);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'api-quiz-builder-wordpress-plugin.zip';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success('Plugin API Quiz Builder baixado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao baixar plugin API Quiz Builder:', error);
+      toast.error('Erro ao baixar o plugin API Quiz Builder. Tente novamente.');
     }
   };
 
@@ -130,8 +176,8 @@ export const Sidebar: React.FC = () => {
             })}
           </ul>
 
-          {/* Plugin Download Button */}
-          <div className="mt-6 border-t pt-4">
+          {/* Plugin Download Buttons */}
+          <div className="mt-6 border-t pt-4 space-y-2">
             <Button
               onClick={downloadPlugin}
               variant="outline"
@@ -139,7 +185,16 @@ export const Sidebar: React.FC = () => {
               size="sm"
             >
               <Download className="mr-3 h-4 w-4 flex-shrink-0" />
-              Plugin WordPress
+              Plugin WordPress (iframe)
+            </Button>
+            <Button
+              onClick={downloadApiPlugin}
+              variant="outline"
+              className="w-full justify-start"
+              size="sm"
+            >
+              <Code className="mr-3 h-4 w-4 flex-shrink-0" />
+              Plugin API Quiz Builder
             </Button>
           </div>
         </nav>
