@@ -27,6 +27,7 @@
         }
 
         async init() {
+            console.log('QuizRenderer init for slug:', this.slug);
             this.render(); // Renderiza o estado de carregamento inicial
             try {
                 const apiUrl = `${this.config.supabase_url}/functions/v1/quiz-api/${this.slug}`;
@@ -41,6 +42,7 @@
                 });
 
                 this.quizData = response;
+                console.log('Quiz data loaded:', this.quizData); // Log quiz data
                 this.applyStyles();
                 this.state = 'SESSION';
                 this.render();
@@ -53,6 +55,7 @@
 
         applyStyles() {
             const design = get(this.quizData, 'design', {});
+            console.log('Applying styles with design:', design);
             // Aplicar estilos diretamente ao container principal do quiz
             this.container.css({
                 '--primary-color': design.primaryColor || '#007bff',
@@ -60,6 +63,7 @@
                 '--background-color': design.backgroundColor || '#ffffff',
                 '--text-color': design.textColor || '#333333'
             });
+            console.log('Container CSS variables set:', this.container[0].style.cssText);
             // Aplicar cor de fundo da página ao body, se especificado
             if (design.pageBackgroundColor) {
                 $('body').css('background-color', design.pageBackgroundColor);
@@ -69,9 +73,11 @@
             }
             // Adicionar classe de animação ao container
             this.container.addClass(`api-quiz-builder-animation-${design.animation || 'fade'}`);
+            console.log('Container classes after animation:', this.container.attr('class'));
         }
 
         render() {
+            console.log('Rendering state:', this.state);
             let content = '';
             switch (this.state) {
                 case 'LOADING': content = this.renderLoadingState(get(this.quizData, 'settings.customTexts.processing', 'Carregando quiz...')); break;
@@ -84,7 +90,7 @@
             }
             this.container.html(content);
             this.attachEventListeners();
-            this.renderAndAttachFooter(); // Renderiza e anexa o rodapé separadamente
+            this.renderAndAttachFooter(); // Renderiza e anexa o rodapé separadamente, APÓS o conteúdo do quiz
         }
 
         renderSessionState() {
