@@ -328,17 +328,17 @@
                 </footer>
             `;
 
-            // Remove o rodapé antigo se existir
-            if (this.footerElement) {
-                this.footerElement.remove();
+            // Se o rodapé ainda não existe, cria e anexa ao body
+            if (!this.footerElement) {
+                this.footerElement = $(footerHtml);
+                $('body').append(this.footerElement);
+                this.initFooterScripts(); // Inicializa os scripts apenas uma vez
+            } else {
+                // Se já existe, apenas atualiza o conteúdo
+                this.footerElement.html($(footerHtml).html());
+                // Re-inicializa os scripts para garantir que os event listeners e intervalos sejam redefinidos
+                this.initFooterScripts();
             }
-
-            // Cria e anexa o novo rodapé ao body
-            this.footerElement = $(footerHtml);
-            $('body').append(this.footerElement);
-
-            // Inicializa os scripts do rodapé após anexar o HTML
-            this.initFooterScripts();
         }
 
 
