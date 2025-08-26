@@ -1,68 +1,102 @@
-(function(blocks, element, components, apiFetch) {
-    const { registerBlockType } = blocks;
-    const { createElement, useState, useEffect } = element;
-    const { SelectControl, PanelBody } = components;
-    const { InspectorControls } = wp.blockEditor;
+(function(wp) {
+    const { registerPlugin } = wp.plugins;
+    const { PluginSidebar, PluginSidebarMoreMenuItem } = wp.editPost;
+    const { createElement, useState, useEffect } = wp.element;
+    const { PanelBody, Button, Spinner } = wp.components;
+    const { __ } = wp.i18n;
+    const { apiFetch } = wp;
+    const { createBlock } = wp.blocks;
+    const { dispatch } = wp.data;
+    const { registerBlockType } = wp.blocks;
 
+    // 1. Register the underlying block (it won't be visible in the inserter, but is needed)
     registerBlockType('nenimaster/quiz-block', {
         title: 'Quiz NeniMaster',
         icon: 'forms',
         category: 'embed',
-        attributes: {
-            quizSlug: {
-                type: 'string',
-                default: '',
-            },
-        },
+        edit: () => null, // The sidebar handles editing/insertion
+        save: () => null,
+    });
 
-        edit: function(props) {
-            const { attributes, setAttributes } = props;
-            const [quizzes, setQuizzes] = useState([]);
-            const [loading, setLoading] = useState(true);
+    // 2. Create the React component for our new sidebar
+    const QuizInserterSidebar = () => {
+        const [quizzes, setQuizzes] = useState([]);
+        const [isLoading, setIsLoading] = useState(true);
+        const [error, setError] = useState(null);
 
-            useEffect(function() {
-                apiFetch({ path: '/nenimaster/v1/quizzes' })
-                    .then(function(data) {
-                        const quizOptions = data.map(function(quiz) {
-                            return { label: quiz.title, value: quiz.slug };
-                        });
-                        setQuizzes([{ label: 'Selecione um Quiz', value: '' }].concat(quizOptions));
-                        setLoading(false);
-                    })
-                    .catch(function(error) {
-                        console.error('Error fetching quizzes:', error);
-                        setQuizzes([{ label: 'Erro ao carregar quizzes', value: '' }]);
-                        setLoading(false);
-                    });
-            }, []);
+        useEffect(() => {
+            apiFetch({ path: '/nenimaster/v1/quizzes' })
+                .then((data) => {
+                    const quizOptions = data.map((quiz) => ({
+                        label: quiz.title,
+                        value: quiz.slug,
+                    }));
+                    setQuizzes(quizOptions);
+                    setIsLoading(false);
+                })
+                .catch((err) => {
+                    setError('Não foi possível carregar os quizzes. Verifique as configurações do plugin.');
+                    setIsLoading(false);
+                    console.error(err);
+                });
+        }, []);
 
-            function onQuizChange(newSlug) {
-                setAttributes({ quizSlug: newSlug });
-            }
+        const insertQuiz = (slug) => {
+            const block = createBlock('nenimaster/quiz-block', {
+                quizSlug: slug,
+            });
+            dispatch('core/block-editor').insertBlocks(block);
+            // Optional: close the sidebar after inserting
+            dispatch('core/edit-post').closeGeneralSidebar();
+        };
 
-            return [
-                createElement(InspectorControls, { key: 'inspector' },
-                    createElement(PanelBody, { title: 'Configurações do Quiz' },
-                        createElement(SelectControl, {
-                            label: 'Selecione o Quiz',
-                            value: attributes.quizSlug,
-                            options: quizzes,
-                            onChange: onQuizChange,
-                            disabled: loading,
-                        })
+        return createElement(
+            'div',
+            { style: { padding: '16px' } },
+            createElement(
+                PanelBody,
+                { title: __('Quizzes Publicados', 'nenimaster-quiz-inserter') },
+                isLoading && createElement(Spinner),
+                error && createElement('p', { style: { color: 'red' } }, error),
+                !isLoading && !error && quizzes.length === 0 && createElement('p', {}, 'Nenhum quiz publicado encontrado.'),
+                !isLoading && !error && quizzes.map((quiz) =>
+                    createElement(
+                        Button,
+                        {
+                            isPrimary: true,
+                            isLarge: true,
+                            style: { marginBottom: '8px', width: '100%', justifyContent: 'flex-start' },
+                            onClick: () => insertQuiz(quiz.value),
+                        },
+                        quiz.label
                     )
-                ),
-                createElement('div', { className: props.className },
-                    attributes.quizSlug ? 
-                    'Quiz NeniMaster selecionado: ' + (quizzes.find(q => q.value === attributes.quizSlug)?.label || attributes.quizSlug) + '. O quiz será exibido aqui.' :
-                    'Por favor, selecione um quiz no painel de configurações à direita.'
                 )
-            ];
-        },
+            )
+        );
+    };
 
-        save: function() {
-            // A renderização é feita pelo PHP (render_callback), então o save retorna null.
-            return null;
+    // 3. Register the plugin which creates the sidebar and the icon
+    registerPlugin('nenimaster-quiz-inserter', {
+        icon: 'forms', // The icon for the sidebar
+        render: () => {
+            return createElement(
+                wp.element.Fragment,
+                {},
+                createElement(
+                    PluginSidebarMoreMenuItem,
+                    { target: 'nenimaster-quiz-sidebar' },
+                    __('Quiz NeniMaster', 'nenimaster-quiz-inserter')
+                ),
+                createElement(
+                    PluginSidebar,
+                    {
+                        name: 'nenimaster-quiz-sidebar',
+                        title: __('Inserir Quiz', 'nenimaster-quiz-inserter'),
+                    },
+                    createElement(QuizInserterSidebar)
+                )
+            );
         },
     });
-})(window.wp.blocks, window.wp.element, window.wp.components, window.wp.apiFetch);
+
+})(window.wp);
