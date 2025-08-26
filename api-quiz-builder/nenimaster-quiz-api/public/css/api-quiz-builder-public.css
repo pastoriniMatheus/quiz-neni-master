@@ -10,6 +10,7 @@
     font-family: sans-serif;
     color: var(--text-color, #333); /* Use CSS variable */
     transition: all 0.3s ease-in-out; /* Smooth transitions for design changes */
+    box-sizing: border-box; /* Ensure padding doesn't increase total width */
 }
 
 .api-quiz-builder-container .loading-message {
@@ -22,13 +23,14 @@
     text-align: center;
     font-size: 1.8em;
     margin-bottom: 10px;
-    color: var(--text-color, #333);
+    color: var(--text-color, #333); /* Use CSS variable */
+    line-height: 1.2;
 }
 
 .api-quiz-builder-quiz-description {
     text-align: center;
     font-size: 1em;
-    color: var(--text-color, #666);
+    color: var(--text-color, #666); /* Use CSS variable */
     margin-bottom: 20px;
 }
 
@@ -56,7 +58,8 @@
 .api-quiz-builder-question-title {
     font-size: 1.5em;
     margin-bottom: 20px;
-    color: var(--text-color, #333);
+    color: var(--text-color, #333); /* Use CSS variable */
+    line-height: 1.3;
 }
 
 .api-quiz-builder-options-grid {
@@ -79,6 +82,7 @@
     width: 100%;
     text-align: left;
     display: block; /* Ensure buttons take full width */
+    box-sizing: border-box;
 }
 
 .api-quiz-builder-option-button:hover,
@@ -140,7 +144,7 @@
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
-    color: var(--text-color, #333);
+    color: var(--text-color, #333); /* Use CSS variable */
 }
 
 .api-quiz-builder-form-fields input,
@@ -151,8 +155,8 @@
     border-radius: 5px;
     font-size: 1em;
     box-sizing: border-box;
-    color: var(--text-color, #333);
-    background-color: var(--background-color, #fff);
+    color: var(--text-color, #333); /* Use CSS variable */
+    background-color: var(--background-color, #fff); /* Use CSS variable */
 }
 
 .api-quiz-builder-form-fields input:focus,
@@ -176,6 +180,7 @@
     font-size: 1.1em;
     transition: background-color 0.2s ease-in-out;
     margin: 0 5px;
+    box-sizing: border-box;
 }
 
 .api-quiz-builder-button:hover {
@@ -190,6 +195,7 @@
 .api-quiz-builder-ad-container {
     min-height: 200px; /* Ensure ad container has some height */
     display: flex;
+    flex-direction: column; /* Allow content to stack */
     align-items: center;
     justify-content: center;
     background-color: var(--secondary-color, #f0f0f0); /* Use secondary color */
@@ -198,6 +204,7 @@
     margin-bottom: 20px;
     color: var(--text-color, #666);
     font-style: italic;
+    text-align: center;
 }
 
 .api-quiz-builder-ad-container.test-mode {
@@ -210,7 +217,7 @@
     font-size: 1.2em;
     font-weight: bold;
     margin-bottom: 15px;
-    color: var(--text-color, #333);
+    color: var(--text-color, #333); /* Use CSS variable */
 }
 
 .api-quiz-builder-loading-screen {
@@ -220,7 +227,7 @@
 
 .api-quiz-builder-loading-spinner {
     border: 4px solid rgba(0, 0, 0, 0.1);
-    border-top: 4px solid var(--primary-color, #007bff);
+    border-top: 4px solid var(--primary-color, #007bff); /* Use primary color */
     border-radius: 50%;
     width: 40px;
     height: 40px;
@@ -240,25 +247,25 @@
 
 .api-quiz-builder-result-icon {
     font-size: 3em;
-    color: var(--quiz-success, green); /* Use a success color variable */
+    color: var(--primary-color, green); /* Use primary color for success icon */
     margin-bottom: 20px;
 }
 
 .api-quiz-builder-result-title {
     font-size: 2em;
     margin-bottom: 10px;
-    color: var(--text-color, #333);
+    color: var(--text-color, #333); /* Use CSS variable */
 }
 
 .api-quiz-builder-result-description {
     font-size: 1em;
-    color: var(--text-color, #666);
+    color: var(--text-color, #666); /* Use CSS variable */
     margin-bottom: 20px;
 }
 
 .api-quiz-builder-redirect-countdown {
     font-size: 0.9em;
-    color: var(--text-color, #666);
+    color: var(--text-color, #666); /* Use CSS variable */
     margin-top: 10px;
 }
 
@@ -270,11 +277,11 @@
     border-top: 1px solid var(--secondary-color, #eee);
     text-align: center;
     font-size: 0.85em;
-    color: var(--text-color, #777);
+    color: var(--text-color, #777); /* Use CSS variable */
 }
 
 .api-quiz-builder-footer a {
-    color: var(--primary-color, #007bff);
+    color: var(--primary-color, #007bff); /* Use primary color */
     text-decoration: none;
 }
 
@@ -285,6 +292,9 @@
 .api-quiz-builder-footer-location,
 .api-quiz-builder-footer-counter {
     margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .api-quiz-builder-footer-location span,
@@ -299,8 +309,9 @@
     margin-right: 5px;
 }
 
-.api-quiz-builder-footer-location .text-green-600 {
-    color: var(--quiz-success, #28a745); /* Example green color */
+.api-quiz-builder-footer-counter .text-green-600 {
+    color: var(--primary-color, #28a745); /* Use primary color for counter */
+    font-weight: bold;
 }
 
 /* Animations */
