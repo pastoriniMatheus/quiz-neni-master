@@ -35,6 +35,7 @@
             };
             this.adTimer = null; // To clear ad countdown timer
             this.redirectTimer = null; // To clear redirect countdown timer
+            this.processingTimer = null; // To clear processing timer
 
             this.init();
         }
@@ -92,6 +93,11 @@
         }
 
         render() {
+            // Clear any existing timers before re-rendering to prevent multiple timers running
+            if (this.adTimer) clearTimeout(this.adTimer);
+            if (this.redirectTimer) clearTimeout(this.redirectTimer);
+            if (this.processingTimer) clearTimeout(this.processingTimer);
+
             if (this.state.isLoading) {
                 this.container.innerHTML = this.renderLoadingScreen();
                 return;
@@ -258,6 +264,10 @@
 
         // Helper to inject and execute scripts
         injectAndExecuteScripts(containerElement) {
+            // Clear existing scripts to prevent duplicates if re-rendering the same ad
+            const existingScripts = containerElement.querySelectorAll('script');
+            existingScripts.forEach(script => script.remove());
+
             const scripts = Array.from(containerElement.querySelectorAll('script'));
             scripts.forEach((oldScript) => {
                 const newScript = document.createElement('script');
@@ -497,8 +507,7 @@
             }
 
             if (adContinueButton) {
-                // Clear any existing timer to prevent multiple timers running
-                if (this.adTimer) clearTimeout(this.adTimer);
+                if (this.adTimer) clearTimeout(this.adTimer); // Clear any previous timer
 
                 if (this.quizData.settings.testAdEnabled) {
                     let countdown = 5;
@@ -566,25 +575,31 @@
         }
 
         handleAdComplete() {
-            // Clear any ad timers when ad is completed
             if (this.adTimer) clearTimeout(this.adTimer);
             this.state.showAd = false;
-            this.state.showFinalAd = false;
-            this.proceedToNextStep();
+            this.state.showFinalAd = false; // Reset both ad states
+            this.render(); // Render immediately to clear ad screen
+            this.proceedToNextStep(); // Then proceed to the next logical step
         }
 
         proceedToNextStep() {
-            const currentSessionData = this.quizData.sessions[this.currentSessionIndex];
+            // If we just finished an ad for the current session, move past it.
+            // The `handleAdComplete` already set `showAd` to false.
+            // So, if `this.state.showAd` is false, it means we're either starting a new session
+            // or just finished an ad for the previous one.
 
-            // If current session has an ad and it hasn't been shown yet, show it
+            const currentSessionData = this.quizData.sessions[this.currentSessionIndex];
+            const isLastSession = this.currentSessionIndex === this.quizData.sessions.length - 1;
+
+            // If there's an ad for the current session and it hasn't been shown yet
             if (currentSessionData?.showAd && !this.state.showAd) {
                 this.state.showAd = true;
                 this.render();
                 return;
             }
 
-            // If there are more sessions, move to the next one
-            if (this.currentSessionIndex < this.quizData.sessions.length - 1) {
+            // If we are past the current session's ad (or there was none)
+            if (!isLastSession) {
                 this.currentSessionIndex++;
                 this.render();
             } else {
@@ -628,7 +643,7 @@
             }
 
             const processingTime = (this.quizData.settings.processingTime || 3) * 1000;
-            setTimeout(() => {
+            this.processingTimer = setTimeout(() => {
                 this.state.isLoading = false;
                 if (this.quizData.settings.showFinalAd) {
                     this.state.showFinalAd = true;
@@ -636,14 +651,13 @@
                     this.state.showResult = true;
                     this.startRedirectCountdown();
                 }
-                this.render();
+                this.render(); // Render after state change
             }, processingTime);
         }
 
         startRedirectCountdown() {
             if (this.quizData.settings.redirect.enabled && this.quizData.settings.redirect.url) {
-                // Clear any existing timer to prevent multiple timers running
-                if (this.redirectTimer) clearTimeout(this.redirectTimer);
+                if (this.redirectTimer) clearTimeout(this.redirectTimer); // Clear any existing timer
 
                 let delay = this.quizData.settings.redirect.delay || 3;
                 this.state.redirectCountdown = delay;
