@@ -1,549 +1,260 @@
 (function($) {
     'use strict';
 
-    const API_QUIZ_BUILDER_PUBLIC_VARS = window.api_quiz_builder_public_vars || {};
-    const REST_API_URL = API_QUIZ_BUILDER_PUBLIC_VARS.rest_url;
-    const SUPABASE_ANON_KEY = API_QUIZ_BUILDER_PUBLIC_VARS.supabase_anon_key;
-    const SUPABASE_URL = API_QUIZ_BUILDER_PUBLIC_VARS.supabase_url;
-    const SUBMIT_RESPONSE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/submit-quiz-response`;
-
-    if (!REST_API_URL) {
-        console.error('API Quiz Builder: REST API URL not defined.');
-        return;
-    }
-    if (!SUPABASE_ANON_KEY) {
-        console.error('API Quiz Builder: Supabase Anon Key not defined. Quiz submissions will fail.');
-    }
-    if (!SUPABASE_URL) {
-        console.error('API Quiz Builder: Supabase URL not defined. Quiz submissions will fail.');
-    }
+    const get = (obj, path, defaultValue = undefined) => {
+        const result = path.split('.').reduce((r, p) => r && r[p], obj);
+        return result === undefined ? defaultValue : result;
+    };
 
     class QuizRenderer {
-        constructor(containerElement, quizSlug) {
-            this.container = containerElement;
-            this.quizSlug = quizSlug;
+        constructor(container, slug) {
+            this.container = $(container);
+            this.slug = slug;
             this.quizData = null;
-            this.currentSessionIndex = 0;
             this.answers = {};
-            this.formData = {};
-            this.state = {
-                isLoading: true,
-                showAd: false,
-                showFinalAd: false,
-                wasShowingFinalAd: false, // Flag to track context for handleAdComplete
-                showResult: false,
-                redirectCountdown: 0,
-            };
-            this.adTimer = null;
-            this.redirectTimer = null;
-            this.processingTimer = null;
-
+            this.state = 'LOADING'; // LOADING, SESSION, AD, PROCESSING, RESULT, ERROR
+            this.currentSessionIndex = 0;
+            this.config = window.api_quiz_builder_public_vars || {};
             this.init();
         }
 
         async init() {
-            this.container.innerHTML = '<p class="loading-message">Carregando quiz...</p>';
-            await this.fetchQuizData();
-            if (this.quizData) {
-                this.applyCustomStyles();
-                this.render();
-            } else {
-                this.container.innerHTML = '<p style="color: red;">Não foi possível carregar o quiz.</p>';
-            }
-        }
-
-        async fetchQuizData() {
+            this.render();
             try {
-                const response = await fetch(`${REST_API_URL}/${this.quizSlug}`);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                this.quizData = await response.json();
-                this.state.isLoading = false;
-                console.log('Quiz data loaded:', this.quizData);
+                const apiUrl = `${this.config.supabase_url}/functions/v1/quiz-api/${this.slug}`;
+                
+                const response = await $.ajax({
+                    url: apiUrl,
+                    method: 'GET',
+                    headers: {
+                        'x-api-key': this.config.api_key,
+                        'Authorization': `Bearer ${this.config.supabase_anon_key}`
+                    }
+                });
+
+                this.quizData = response;
+                this.applyStyles();
+                this.state = 'SESSION';
+                this.render();
             } catch (error) {
-                console.error('Error fetching quiz data:', error);
-                this.quizData = null;
-                this.state.isLoading = false;
+                console.error('Falha ao carregar dados do quiz:', error);
+                this.state = 'ERROR';
+                this.render();
             }
         }
 
-        applyCustomStyles() {
-            if (this.quizData && this.quizData.design) {
-                const design = this.quizData.design;
-                this.container.style.setProperty('--primary-color', design.primaryColor || '#007bff');
-                this.container.style.setProperty('--secondary-color', design.secondaryColor || '#6c757d');
-                this.container.style.setProperty('--background-color', design.backgroundColor || '#ffffff');
-                this.container.style.setProperty('--text-color', design.textColor || '#333333');
-                
-                if (design.pageBackgroundColor) {
-                    document.body.style.backgroundColor = design.pageBackgroundColor;
-                } else {
-                    document.body.style.backgroundColor = ''; 
-                }
-
-                if (design.animation) {
-                    this.container.classList.add(`api-quiz-builder-animation-${design.animation}`);
-                } else {
-                    this.container.classList.remove('api-quiz-builder-animation-fade', 'api-quiz-builder-animation-slide', 'api-quiz-builder-animation-scale');
-                }
+        applyStyles() {
+            const design = get(this.quizData, 'design', {});
+            this.container.css({
+                '--primary-color': design.primaryColor || '#007bff',
+                '--secondary-color': design.secondaryColor || '#6c757d',
+                '--background-color': design.backgroundColor || '#ffffff',
+                '--text-color': design.textColor || '#333333'
+            });
+            if (design.pageBackgroundColor) {
+                $('body').css('background-color', design.pageBackgroundColor);
             }
         }
 
         render() {
-            if (this.adTimer) clearTimeout(this.adTimer);
-            if (this.redirectTimer) clearTimeout(this.redirectTimer);
-            if (this.processingTimer) clearTimeout(this.processingTimer);
-
-            if (this.state.isLoading) {
-                this.container.innerHTML = this.renderLoadingScreen();
-                return;
+            let content = '';
+            switch (this.state) {
+                case 'LOADING': content = this.renderLoadingState('Carregando quiz...'); break;
+                case 'SESSION': content = this.renderSessionState(); break;
+                case 'AD': content = this.renderAdState(); break;
+                case 'PROCESSING': content = this.renderLoadingState(get(this.quizData, 'settings.customTexts.processing', 'Processando...')); break;
+                case 'RESULT': content = this.renderResultState(); break;
+                case 'ERROR': content = '<p style="color: red;">Erro ao carregar o quiz. Verifique o slug e as configurações do plugin.</p>'; break;
             }
-
-            if (this.state.showAd || this.state.showFinalAd) {
-                const isFinal = this.state.showFinalAd;
-                const session = isFinal ? null : this.quizData.sessions[this.currentSessionIndex];
-                this.container.innerHTML = this.renderAdManager(session, isFinal);
-                this.attachAdEventListeners();
-                return;
-            }
-
-            if (this.state.showResult) {
-                this.container.innerHTML = this.renderResultScreen();
-                this.attachResultEventListeners();
-                return;
-            }
-
-            const currentSession = this.quizData.sessions[this.currentSessionIndex];
-            if (!currentSession) {
-                this.container.innerHTML = '<p style="color: red;">Erro: Nenhuma sessão encontrada ou índice inválido.</p>';
-                return;
-            }
-
-            let contentHtml = `
-                <h1 class="api-quiz-builder-quiz-title">${this.quizData.title || 'Quiz'}</h1>
-                <p class="api-quiz-builder-quiz-description">${this.quizData.description || ''}</p>
-            `;
-
-            if (this.quizData.sessions.length > 0) {
-                contentHtml += this.renderProgressBar();
-            }
-
-            contentHtml += `<div class="api-quiz-builder-session-content">`;
-
-            if (currentSession.type === 'question') {
-                contentHtml += this.renderQuestion(currentSession);
-            } else if (currentSession.type === 'form') {
-                contentHtml += this.renderForm(currentSession);
-            }
-
-            contentHtml += `</div>`;
-
-            this.container.innerHTML = contentHtml;
+            this.container.html(content);
             this.attachEventListeners();
-            this.renderFooter();
         }
 
-        renderProgressBar() {
+        renderSessionState() {
+            const session = this.quizData.sessions[this.currentSessionIndex];
             const progress = ((this.currentSessionIndex + 1) / this.quizData.sessions.length) * 100;
+            const design = get(this.quizData, 'design', {});
+            const cardClass = `api-quiz-builder-card-style-${design.cardStyle || 'modern'}`;
+            let sessionContent = session.type === 'question' ? this.renderQuestion(session) : this.renderForm(session);
+
             return `
-                <div class="api-quiz-builder-progress-bar">
-                    <div class="api-quiz-builder-progress-fill" style="width: ${progress}%;"></div>
-                </div>
+                <h1 class="api-quiz-builder-quiz-title">${this.quizData.title}</h1>
+                <p class="api-quiz-builder-quiz-description">${this.quizData.description}</p>
+                <div class="api-quiz-builder-progress-bar"><div class="api-quiz-builder-progress-fill" style="width: ${progress}%;"></div></div>
+                <div class="api-quiz-builder-session-content ${cardClass}">${sessionContent}</div>
             `;
         }
 
         renderQuestion(session) {
-            const selectedOption = this.answers[session.id];
-            const design = this.quizData.design || {};
+            const design = get(this.quizData, 'design', {});
             const buttonClass = `api-quiz-builder-option-button api-quiz-builder-button-style-${design.buttonStyle || 'rounded'}`;
-            const cardClass = `api-quiz-builder-card-style-${design.cardStyle || 'modern'}`;
-
             return `
-                <div class="${cardClass}">
-                    <h2 class="api-quiz-builder-question-title">${session.title}</h2>
-                    <div class="api-quiz-builder-options-grid">
-                        ${session.options.map((option) => `
-                            <button class="${buttonClass} ${selectedOption === option ? 'selected' : ''}" data-option="${option}">
-                                ${option}
-                            </button>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
+                <h2 class="api-quiz-builder-question-title">${session.title}</h2>
+                <div class="api-quiz-builder-options-grid">
+                    ${session.options.map(opt => `<button class="${buttonClass}" data-option="${$('<div/>').text(opt).html()}">${$('<div/>').text(opt).html()}</button>`).join('')}
+                </div>`;
         }
 
         renderForm(session) {
-            const formFields = session.formFields || {};
-            const design = this.quizData.design || {};
+            const design = get(this.quizData, 'design', {});
             const buttonClass = `api-quiz-builder-button api-quiz-builder-button-style-${design.buttonStyle || 'rounded'}`;
-            const cardClass = `api-quiz-builder-card-style-${design.cardStyle || 'modern'}`;
-
+            const fields = session.formFields || {};
             return `
-                <div class="${cardClass}">
-                    <h2 class="api-quiz-builder-question-title">${session.title}</h2>
-                    <div class="api-quiz-builder-form-fields">
-                        ${formFields.name ? `
-                            <div>
-                                <label for="form-name-${this.quizSlug}">Nome Completo ${session.required ? '*' : ''}</label>
-                                <input type="text" id="form-name-${this.quizSlug}" value="${this.formData.name || ''}" placeholder="Seu nome completo" />
-                            </div>
-                        ` : ''}
-                        ${formFields.email ? `
-                            <div>
-                                <label for="form-email-${this.quizSlug}">E-mail ${session.required ? '*' : ''}</label>
-                                <input type="email" id="form-email-${this.quizSlug}" value="${this.formData.email || ''}" placeholder="seu@email.com" />
-                            </div>
-                        ` : ''}
-                        ${formFields.phone ? `
-                            <div>
-                                <label for="form-phone-${this.quizSlug}">Telefone/WhatsApp</label>
-                                <input type="tel" id="form-phone-${this.quizSlug}" value="${this.formData.phone || ''}" placeholder="(11) 99999-9999" />
-                            </div>
-                        ` : ''}
-                        ${formFields.message ? `
-                            <div>
-                                <label for="form-message-${this.quizSlug}">Mensagem</label>
-                                <textarea id="form-message-${this.quizSlug}" placeholder="Sua mensagem">${this.formData.message || ''}</textarea>
-                            </div>
-                        ` : ''}
-                    </div>
-                    <div class="api-quiz-builder-navigation-buttons">
-                        <button class="${buttonClass}" id="api-quiz-next-button">Continuar</button>
-                    </div>
+                <h2 class="api-quiz-builder-question-title">${session.title}</h2>
+                <div class="api-quiz-builder-form-fields">
+                    ${fields.name ? '<div><label>Nome</label><input type="text" name="name" /></div>' : ''}
+                    ${fields.email ? '<div><label>Email</label><input type="email" name="email" /></div>' : ''}
+                    ${fields.phone ? '<div><label>Telefone</label><input type="tel" name="phone" /></div>' : ''}
                 </div>
-            `;
+                <div class="api-quiz-builder-navigation-buttons"><button class="${buttonClass}" id="submit-form">Continuar</button></div>`;
         }
 
-        renderAdManager(session = null, isFinalAd = false) {
-            const adMessage = this.quizData.settings.customTexts.adMessage || 'Veja um anúncio para continuar';
-            const design = this.quizData.design || {};
-            const buttonClass = `api-quiz-builder-button api-quiz-builder-button-style-${design.buttonStyle || 'rounded'}`;
-
+        renderAdState() {
+            const adMessage = get(this.quizData, 'settings.customTexts.adMessage', 'Publicidade');
             return `
-                <div class="api-quiz-builder-ad-screen">
-                    <h2 class="api-quiz-builder-ad-message">${adMessage}</h2>
-                    <div class="api-quiz-builder-ad-container" id="ad-content-container">
-                        <!-- Ad content will be injected here by JavaScript -->
-                    </div>
-                    <div class="api-quiz-builder-navigation-buttons">
-                        <button class="${buttonClass}" id="api-quiz-ad-continue-button" style="display: none;">Continuar</button>
-                    </div>
-                </div>
-            `;
+                <h2 class="api-quiz-builder-ad-message">${adMessage}</h2>
+                <div class="api-quiz-builder-ad-container" id="ad-container"></div>
+                <div class="api-quiz-builder-navigation-buttons"><button class="api-quiz-builder-button" id="ad-continue" style="display:none;">Continuar</button></div>`;
         }
 
-        injectAndExecuteScripts(containerElement, htmlContent) {
-            if (!containerElement || !htmlContent) return;
-        
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = htmlContent;
-        
-            while (containerElement.firstChild) {
-                containerElement.removeChild(containerElement.firstChild);
-            }
-        
-            Array.from(tempDiv.childNodes).forEach(node => {
-                if (node.nodeName === 'SCRIPT') {
-                    const script = document.createElement('script');
-                    for (let i = 0; i < node.attributes.length; i++) {
-                        const attr = node.attributes[i];
-                        script.setAttribute(attr.name, attr.value);
-                    }
-                    script.text = node.text;
-                    containerElement.appendChild(script);
-                } else {
-                    containerElement.appendChild(node.cloneNode(true));
-                }
-            });
+        renderLoadingState(message) {
+            return `<div class="api-quiz-builder-loading-screen"><div class="api-quiz-builder-loading-spinner"></div><h2>${message}</h2></div>`;
         }
 
-        renderLoadingScreen() {
-            const processingText = this.quizData?.settings?.customTexts?.processing || 'Processando suas informações...';
-            return `
-                <div class="api-quiz-builder-loading-screen">
-                    <div class="api-quiz-builder-loading-spinner"></div>
-                    <h2 class="api-quiz-builder-result-title">${processingText}</h2>
-                    <p class="api-quiz-builder-result-description">Aguarde enquanto analisamos suas respostas.</p>
-                </div>
-            `;
-        }
-
-        renderResultScreen() {
-            const resultText = this.quizData.settings.customTexts.result || 'Resultado calculado!';
-            const redirectEnabled = this.quizData.settings.redirect.enabled && this.quizData.settings.redirect.url;
-            const design = this.quizData.design || {};
-            const buttonClass = `api-quiz-builder-button api-quiz-builder-button-style-${design.buttonStyle || 'rounded'}`;
-
-            let redirectMessage = '';
-            if (redirectEnabled && this.state.redirectCountdown > 0) {
-                redirectMessage = `<p class="api-quiz-builder-redirect-countdown">Redirecionando automaticamente em ${this.state.redirectCountdown} segundos...</p>`;
-            }
-
+        renderResultState() {
+            const resultText = get(this.quizData, 'settings.customTexts.result', 'Obrigado!');
+            const redirect = get(this.quizData, 'settings.redirect', {});
             return `
                 <div class="api-quiz-builder-result-screen">
                     <div class="api-quiz-builder-result-icon">✅</div>
                     <h2 class="api-quiz-builder-result-title">${resultText}</h2>
-                    <p class="api-quiz-builder-result-description">Com base no seu perfil, selecionamos as melhores opções.</p>
-                    <div class="api-quiz-builder-navigation-buttons">
-                        ${redirectEnabled ? `
-                            <button class="${buttonClass}" id="api-quiz-redirect-button">Ver Recomendações</button>
-                        ` : `
-                            <button class="${buttonClass}" id="api-quiz-restart-button">Refazer Quiz</button>
-                        `}
-                    </div>
-                    ${redirectMessage}
-                </div>
-            `;
-        }
-
-        renderFooter() {
-            if (!this.quizData || !this.quizData.user_id) return;
-            
-            let footerSettings = this.quizData.footer_settings || {
-                showLocation: true,
-                showCounter: true,
-                companyName: 'Quiz NeniMaster',
-                privacyUrl: '#',
-                termsUrl: '#',
-                footerText: '© {year} {companyName}'
-            };
-        
-            const processedFooterText = (footerSettings.footerText || '')
-                .replace('{companyName}', footerSettings.companyName || 'Quiz NeniMaster')
-                .replace('{year}', new Date().getFullYear().toString());
-        
-            const footerHtml = `
-                <footer class="api-quiz-builder-footer">
-                    <div class="api-quiz-builder-footer-content">
-                        ${(footerSettings.showLocation || footerSettings.showCounter) ? `
-                            <div class="api-quiz-builder-footer-info">
-                                ${footerSettings.showLocation ? `<div class="api-quiz-builder-footer-location"><span class="icon">📍</span> <span id="api-quiz-location">Detectando...</span></div>` : ''}
-                                ${footerSettings.showCounter ? `<div class="api-quiz-builder-footer-counter"><span class="icon">👥</span> <span class="text-green-600" id="api-quiz-people-count">400</span> <span>pessoas em <span id="api-quiz-location-short"></span> respondendo</span></div>` : ''}
-                            </div>
-                        ` : ''}
-                        <p class="api-quiz-builder-footer-links">
-                            Ao prosseguir você concorda com os nossos<br/>
-                            <a href="${footerSettings.termsUrl || '#'}" target="_blank" rel="noopener noreferrer">Termos de Uso</a> e 
-                            <a href="${footerSettings.privacyUrl || '#'}" target="_blank" rel="noopener noreferrer">Políticas de Privacidade</a>
-                        </p>
-                        <p class="api-quiz-builder-footer-text">${processedFooterText}</p>
-                    </div>
-                </footer>
-            `;
-            const existingFooter = document.querySelector('.api-quiz-builder-footer');
-            if (existingFooter) existingFooter.remove();
-            this.container.insertAdjacentHTML('afterend', footerHtml);
-            this.initFooterScripts(footerSettings);
-        }
-
-        initFooterScripts(footerSettings) {
-            // Implementation for footer scripts remains the same
+                    ${redirect.enabled && redirect.url ? `<button class="api-quiz-builder-button" id="redirect-btn">Ver Recomendações</button><p id="redirect-countdown"></p>` : ''}
+                </div>`;
         }
 
         attachEventListeners() {
-            const currentSession = this.quizData.sessions[this.currentSessionIndex];
-            if (currentSession.type === 'question') {
-                this.container.querySelectorAll('.api-quiz-builder-option-button').forEach(button => {
-                    button.onclick = (e) => this.handleAnswerSelect(e.target.dataset.option);
-                });
-            } else if (currentSession.type === 'form') {
-                const nameInput = this.container.querySelector(`#form-name-${this.quizSlug}`);
-                if (nameInput) nameInput.oninput = (e) => this.formData.name = e.target.value;
-                // ... other form fields
-                const nextButton = this.container.querySelector('#api-quiz-next-button');
-                if (nextButton) nextButton.onclick = () => this.handleNext();
+            this.container.off();
+            if (this.state === 'SESSION') {
+                this.quizData.sessions[this.currentSessionIndex].type === 'question'
+                    ? this.container.on('click', '.api-quiz-builder-option-button', this.handleQuestionAnswer.bind(this))
+                    : this.container.on('click', '#submit-form', this.handleFormSubmit.bind(this));
+            } else if (this.state === 'AD') {
+                this.loadAd();
+                this.container.on('click', '#ad-continue', this.handleAdContinue.bind(this));
+            } else if (this.state === 'RESULT') {
+                this.handleRedirect();
             }
         }
 
-        attachAdEventListeners() {
-            const adContinueButton = this.container.querySelector('#api-quiz-ad-continue-button');
-            const adContentContainer = this.container.querySelector('#ad-content-container');
-    
-            const isFinalAd = this.state.showFinalAd;
-            const adCode = isFinalAd 
-                ? this.quizData.settings.finalAdCode 
-                : this.quizData.sessions[this.currentSessionIndex]?.adCode;
-            const isTestMode = this.quizData.settings.testAdEnabled;
-    
-            if (adContentContainer) {
-                if (isTestMode) {
-                    const adMessage = this.quizData.settings.customTexts.adMessage || 'Veja um anúncio para continuar';
-                    adContentContainer.innerHTML = `
-                        <div class="test-mode-content" style="padding: 20px; border: 1px dashed #ccc;">
-                            <p>Anúncio de Teste: ${adMessage}</p>
-                            <p>Aguarde <span id="ad-countdown">5</span> segundos...</p>
-                        </div>
-                    `;
-                } else if (adCode) {
-                    this.injectAndExecuteScripts(adContentContainer, adCode);
-                } else {
-                    adContentContainer.innerHTML = `<p>Nenhum código de anúncio configurado.</p>`;
-                }
-            }
-    
-            if (adContinueButton) {
-                if (this.adTimer) clearTimeout(this.adTimer);
-    
-                const adDelay = 5000;
-                if (isTestMode) {
-                    let countdown = 5;
-                    const countdownEl = this.container.querySelector('#ad-countdown');
-                    const timerFunc = () => {
-                        countdown--;
-                        if (countdownEl) countdownEl.textContent = countdown;
-                        if (countdown <= 0) {
-                            clearTimeout(this.adTimer);
-                            adContinueButton.style.display = 'block';
-                        } else {
-                            this.adTimer = setTimeout(timerFunc, 1000);
-                        }
-                    };
-                    this.adTimer = setTimeout(timerFunc, 1000);
-                } else {
-                    this.adTimer = setTimeout(() => {
-                        adContinueButton.style.display = 'block';
-                    }, adDelay);
-                }
-                adContinueButton.onclick = () => this.handleAdComplete();
-            }
+        handleQuestionAnswer(e) {
+            const session = this.quizData.sessions[this.currentSessionIndex];
+            this.answers[session.id] = $(e.target).data('option');
+            setTimeout(() => this.moveToNextStep(), 300);
         }
 
-        attachResultEventListeners() {
-            const redirectButton = this.container.querySelector('#api-quiz-redirect-button');
-            if (redirectButton) {
-                redirectButton.onclick = () => window.open(this.quizData.settings.redirect.url, '_blank');
-            }
-            const restartButton = this.container.querySelector('#api-quiz-restart-button');
-            if (restartButton) {
-                restartButton.onclick = () => window.location.reload();
-            }
+        handleFormSubmit() {
+            this.container.find('.api-quiz-builder-form-fields input').each((_, el) => {
+                this.answers[$(el).attr('name')] = $(el).val();
+            });
+            this.moveToNextStep();
         }
 
-        handleAnswerSelect(option) {
-            const currentSessionData = this.quizData.sessions[this.currentSessionIndex];
-            this.answers[currentSessionData.id] = option;
-            this.render();
-            setTimeout(() => this.proceedToNextStep(), 300);
-        }
-
-        handleNext() {
-            // Validation logic here...
-            this.proceedToNextStep();
-        }
-
-        handleAdComplete() {
-            if (this.adTimer) clearTimeout(this.adTimer);
-    
-            const wasFinalAd = this.state.wasShowingFinalAd;
-    
-            this.state.showAd = false;
-            this.state.showFinalAd = false;
-            this.state.wasShowingFinalAd = false;
-    
-            if (wasFinalAd) {
-                this.state.showResult = true;
-                this.startRedirectCountdown();
-                this.render();
-            } else {
-                const isLastSession = this.currentSessionIndex >= this.quizData.sessions.length - 1;
-                if (!isLastSession) {
-                    this.currentSessionIndex++;
-                    this.render();
-                } else {
-                    this.handleComplete();
-                }
-            }
-        }
-
-        proceedToNextStep() {
-            const currentSessionData = this.quizData.sessions[this.currentSessionIndex];
+        moveToNextStep() {
+            const session = this.quizData.sessions[this.currentSessionIndex];
             const isLastSession = this.currentSessionIndex >= this.quizData.sessions.length - 1;
-    
-            if (currentSessionData?.showAd) {
-                this.state.showAd = true;
-                this.render();
+
+            if (session.showAd) {
+                this.state = 'AD';
+            } else if (!isLastSession) {
+                this.currentSessionIndex++;
+                this.state = 'SESSION';
+            } else {
+                this.completeQuiz();
                 return;
             }
-    
+            this.render();
+        }
+
+        loadAd() {
+            const session = this.quizData.sessions[this.currentSessionIndex];
+            const adCode = get(session, 'adCode', '');
+            const isTest = get(this.quizData, 'settings.testAdEnabled', false);
+            const adContainer = this.container.find('#ad-container');
+
+            if (isTest) {
+                adContainer.html('<p>Modo de teste de anúncio. Clique em continuar.</p>');
+            } else if (adCode) {
+                adContainer.html(adCode);
+                adContainer.find('script').each(function() {
+                    const script = document.createElement('script');
+                    script.text = $(this).text();
+                    document.body.appendChild(script).parentNode.removeChild(script);
+                });
+            }
+            setTimeout(() => this.container.find('#ad-continue').show(), 5000);
+        }
+
+        handleAdContinue() {
+            const isLastSession = this.currentSessionIndex >= this.quizData.sessions.length - 1;
             if (!isLastSession) {
                 this.currentSessionIndex++;
+                this.state = 'SESSION';
                 this.render();
             } else {
-                this.handleComplete();
+                this.completeQuiz();
             }
         }
 
-        async handleComplete() {
-            this.state.isLoading = true;
+        async completeQuiz() {
+            this.state = 'PROCESSING';
             this.render();
 
-            const allResponses = { ...this.answers, ...this.formData };
-            const sessionId = this.generateUUID();
-            const userAgent = navigator.userAgent;
-            const quizId = this.quizData.id;
-
+            const submitUrl = `${this.config.supabase_url}/functions/v1/submit-quiz-response`;
             try {
-                await fetch(SUBMIT_RESPONSE_FUNCTION_URL, {
+                await $.ajax({
+                    url: submitUrl,
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                    },
-                    body: JSON.stringify({ quizId, sessionId, userAgent, responseData: allResponses }),
+                    contentType: 'application/json',
+                    headers: { 'Authorization': `Bearer ${this.config.supabase_anon_key}` },
+                    data: JSON.stringify({
+                        quizId: this.quizData.id,
+                        sessionId: 'session-' + Date.now(),
+                        responseData: this.answers
+                    })
                 });
-            } catch (error) {
-                console.error('Erro ao salvar respostas:', error);
-            }
+            } catch (e) { console.error("Falha ao enviar respostas.", e); }
 
-            const processingTime = (this.quizData.settings.processingTime || 3) * 1000;
-            this.processingTimer = setTimeout(() => {
-                this.state.isLoading = false;
-                if (this.quizData.settings.showFinalAd) {
-                    this.state.showFinalAd = true;
-                    this.state.wasShowingFinalAd = true;
-                } else {
-                    this.state.showResult = true;
-                    this.startRedirectCountdown();
-                }
+            const processingTime = get(this.quizData, 'settings.processingTime', 3) * 1000;
+            setTimeout(() => {
+                this.state = 'RESULT';
                 this.render();
             }, processingTime);
         }
 
-        startRedirectCountdown() {
-            if (this.quizData.settings.redirect.enabled && this.quizData.settings.redirect.url) {
-                if (this.redirectTimer) clearTimeout(this.redirectTimer);
-                let delay = this.quizData.settings.redirect.delay || 3;
-                this.state.redirectCountdown = delay;
-                
-                const timerFunc = () => {
-                    this.state.redirectCountdown--;
-                    this.render();
-                    if (this.state.redirectCountdown <= 0) {
-                        clearTimeout(this.redirectTimer);
-                        window.open(this.quizData.settings.redirect.url, '_blank');
+        handleRedirect() {
+            const redirect = get(this.quizData, 'settings.redirect', {});
+            if (redirect.enabled && redirect.url) {
+                let countdown = redirect.delay || 5;
+                const countdownEl = this.container.find('#redirect-countdown');
+                const updateCountdown = () => {
+                    if (countdown <= 0) {
+                        window.location.href = redirect.url;
                     } else {
-                        this.redirectTimer = setTimeout(timerFunc, 1000);
+                        countdownEl.text(`Redirecionando em ${countdown}...`);
+                        countdown--;
+                        setTimeout(updateCountdown, 1000);
                     }
                 };
-                this.redirectTimer = setTimeout(timerFunc, 1000);
+                updateCountdown();
+                this.container.on('click', '#redirect-btn', () => { window.location.href = redirect.url; });
             }
-        }
-
-        generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
         }
     }
 
     $(document).ready(function() {
         $('.api-quiz-builder-container').each(function() {
-            const quizSlug = $(this).data('quiz-slug');
-            if (quizSlug) {
-                new QuizRenderer(this, quizSlug);
-            }
+            const slug = $(this).data('quiz-slug');
+            if (slug) new QuizRenderer(this, slug);
         });
     });
 

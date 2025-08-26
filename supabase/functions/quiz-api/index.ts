@@ -38,28 +38,15 @@ serve(async (req) => {
     }
 
     const url = new URL(req.url);
-    const params = url.searchParams;
-    const action = params.get('action');
-    const slug = params.get('slug');
+    const pathParts = url.pathname.split('/');
+    const slug = pathParts.pop() || pathParts.pop(); // Handle trailing slash
 
-    // Rota para listar todos os quizzes
-    if (req.method === 'GET' && action === 'list') {
-      console.log(`[${requestId}] 📋 Matched action=list. Fetching for user:`, keyData.user_id);
-      const { data, error } = await supabase
-        .from('quizzes')
-        .select('id, title, description, slug, status')
-        .eq('user_id', keyData.user_id)
-        .eq('status', 'published')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error;
-      return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-    }
-
-    // Rota para buscar um quiz específico
-    if (req.method === 'GET' && slug) {
+    // Rota para buscar um quiz específico por slug
+    if (req.method === 'GET' && slug && slug !== 'quiz-api') {
       console.log(`[${requestId}] 🎯 Matched slug=${slug}. Fetching quiz.`);
-      const { data, error } = await supabase
+      
+      // 1. Fetch the quiz
+      const { data: quizData, error: quizError } = await supabase
         .from('quizzes')
         .select('*')
         .eq('slug', slug)
@@ -67,10 +54,33 @@ serve(async (req) => {
         .eq('status', 'published')
         .single()
 
-      if (error) {
+      if (quizError) {
         return new Response(JSON.stringify({ error: 'Quiz não encontrado ou não publicado' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       }
-      return new Response(JSON.stringify(data), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
+      // 2. Fetch the owner's footer settings
+      let footerSettings = null;
+      if (quizData.user_id) {
+          const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('footer_settings')
+              .eq('id', quizData.user_id)
+              .single();
+          
+          if (profileError) {
+              console.warn(`[${requestId}] ⚠️ Could not fetch profile for user ${quizData.user_id}:`, profileError.message);
+          } else {
+              footerSettings = profileData.footer_settings;
+          }
+      }
+
+      // 3. Combine and return
+      const responsePayload = {
+          ...quizData,
+          footer_settings: footerSettings
+      };
+
+      return new Response(JSON.stringify(responsePayload), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     console.log(`[${requestId}] ❌ No route matched.`);
