@@ -56,22 +56,28 @@
         applyStyles() {
             const design = get(this.quizData, 'design', {});
             console.log('Applying styles with design:', design);
-            // Aplicar estilos diretamente ao container principal do quiz
-            this.container.css({
+            
+            // Set CSS variables globally on the html element
+            $('html').css({
                 '--primary-color': design.primaryColor || '#007bff',
-                '--secondary-color': design.secondaryColor || '#6c757d',
-                '--background-color': design.backgroundColor || '#ffffff',
-                '--text-color': design.textColor || '#333333'
+                '--secondary-color': design.secondaryColor || '#e0e0e0', // Default secondary color
+                '--background-color': design.backgroundColor || '#ffffff', // Default quiz card background
+                '--text-color': design.textColor || '#333333', // Default quiz text color
+                '--page-background-color': design.pageBackgroundColor || '#f8f8f8' // Default page background
+            });
+            console.log('HTML CSS variables set.');
+
+            // Apply page background color to body
+            $('body').css('background-color', get(design, 'pageBackgroundColor', '#f8f8f8'));
+            
+            // Apply quiz container specific styles using the variables
+            this.container.css({
+                'background-color': 'var(--background-color)',
+                'color': 'var(--text-color)'
             });
             console.log('Container CSS variables set:', this.container[0].style.cssText);
-            // Aplicar cor de fundo da página ao body, se especificado
-            if (design.pageBackgroundColor) {
-                $('body').css('background-color', design.pageBackgroundColor);
-            } else {
-                // Se não houver pageBackgroundColor, garantir que o body não tenha um fundo indesejado
-                $('body').css('background-color', 'initial'); 
-            }
-            // Adicionar classe de animação ao container
+            
+            // Add animation class to the container
             this.container.addClass(`api-quiz-builder-animation-${design.animation || 'fade'}`);
             console.log('Container classes after animation:', this.container.attr('class'));
         }
@@ -328,17 +334,17 @@
                 </footer>
             `;
 
-            // Se o rodapé ainda não existe, cria e anexa ao body
-            if (!this.footerElement) {
-                this.footerElement = $(footerHtml);
-                $('body').append(this.footerElement);
-                this.initFooterScripts(); // Inicializa os scripts apenas uma vez
-            } else {
-                // Se já existe, apenas atualiza o conteúdo
-                this.footerElement.html($(footerHtml).html());
-                // Re-inicializa os scripts para garantir que os event listeners e intervalos sejam redefinidos
-                this.initFooterScripts();
+            // Remove o rodapé antigo se existir
+            if (this.footerElement) {
+                this.footerElement.remove();
             }
+
+            // Cria e anexa o novo rodapé ao body
+            this.footerElement = $(footerHtml);
+            $('body').append(this.footerElement);
+
+            // Inicializa os scripts do rodapé após anexar o HTML
+            this.initFooterScripts();
         }
 
 
