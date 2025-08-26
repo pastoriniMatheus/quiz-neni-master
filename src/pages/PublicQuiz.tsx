@@ -7,7 +7,7 @@ import { Quiz } from '@/types/quiz';
 
 const PublicQuiz = () => {
   const { slug } = useParams<{ slug: string }>();
-  // Removido: const [footerSettings, setFooterSettings] = useState(null); // Não é mais necessário aqui
+  const [footerSettings, setFooterSettings] = useState(null); // Reintroduzido
 
   const { data: quiz, isLoading, error } = useQuery({
     queryKey: ['public-quiz', slug],
@@ -58,29 +58,28 @@ const PublicQuiz = () => {
     enabled: !!slug,
   });
 
-  // Removido: Fetch footer settings from the quiz owner's profile
-  // A lógica de footer_settings agora é buscada pela Edge Function e passada para o JS do plugin WP.
-  // useEffect(() => {
-  //   if (quiz?.user_id) {
-  //     const fetchFooterSettings = async () => {
-  //       try {
-  //         const { data, error } = await supabase
-  //           .from('profiles')
-  //           .select('footer_settings')
-  //           .eq('id', quiz.user_id)
-  //           .single();
+  // Reintroduzindo a busca das configurações do rodapé do perfil do usuário
+  useEffect(() => {
+    if (quiz?.user_id) {
+      const fetchFooterSettings = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('footer_settings')
+            .eq('id', quiz.user_id)
+            .single();
 
-  //         if (!error && data?.footer_settings) {
-  //           setFooterSettings(data.footer_settings as any);
-  //         }
-  //       } catch (error) {
-  //         console.error('Erro ao buscar configurações do rodapé:', error);
-  //       }
-  //     };
+          if (!error && data?.footer_settings) {
+            setFooterSettings(data.footer_settings as any);
+          }
+        } catch (error) {
+          console.error('Erro ao buscar configurações do rodapé:', error);
+        }
+      };
 
-  //     fetchFooterSettings();
-  //   }
-  // }, [quiz?.user_id]);
+      fetchFooterSettings();
+    }
+  }, [quiz?.user_id]);
 
   if (isLoading) {
     return (
@@ -108,8 +107,8 @@ const PublicQuiz = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Quiz Content - footerSettings não é mais passado diretamente */}
-      <QuizPreview quiz={quiz} />
+      {/* Passando footerSettings para QuizPreview */}
+      <QuizPreview quiz={quiz} footerSettings={footerSettings} />
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react'; // Adicionado useState e useEffect
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Quiz, QuizSession, QuizSettings, QuizDesign } from '@/types/quiz';
 
 export const QuizView: React.FC = () => {
   const { id } = useParams();
+  const [footerSettings, setFooterSettings] = useState(null); // Adicionado
 
   const { data: quizData, isLoading, error } = useQuery({
     queryKey: ['quiz-view', id],
@@ -26,6 +27,29 @@ export const QuizView: React.FC = () => {
     },
     enabled: !!id,
   });
+
+  // Adicionado: Fetch footer settings from the quiz owner's profile
+  useEffect(() => {
+    if (quizData?.user_id) {
+      const fetchFooterSettings = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('footer_settings')
+            .eq('id', quizData.user_id)
+            .single();
+
+          if (!error && data?.footer_settings) {
+            setFooterSettings(data.footer_settings as any);
+          }
+        } catch (error) {
+          console.error('Erro ao buscar configurações do rodapé:', error);
+        }
+      };
+
+      fetchFooterSettings();
+    }
+  }, [quizData?.user_id]);
 
   if (isLoading) {
     return (
@@ -140,8 +164,8 @@ export const QuizView: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        {/* O footerSettings não é mais passado para QuizPreview, pois a lógica de footer é tratada pelo plugin WP */}
-        <QuizPreview quiz={quiz} />
+        {/* Passando footerSettings para QuizPreview */}
+        <QuizPreview quiz={quiz} footerSettings={footerSettings} />
       </div>
     </div>
   );

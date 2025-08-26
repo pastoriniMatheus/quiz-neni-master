@@ -20,6 +20,8 @@
             this.redirectTimer = null;
             this.adTimer = null;
             this.showSkipButton = false;
+            this.locationInterval = null; // Para gerenciar o intervalo do contador
+            this.counterInterval = null; // Para gerenciar o intervalo do contador
             this.init();
         }
 
@@ -50,16 +52,21 @@
 
         applyStyles() {
             const design = get(this.quizData, 'design', {});
+            // Aplicar estilos diretamente ao container principal do quiz
             this.container.css({
                 '--primary-color': design.primaryColor || '#007bff',
                 '--secondary-color': design.secondaryColor || '#6c757d',
                 '--background-color': design.backgroundColor || '#ffffff',
                 '--text-color': design.textColor || '#333333'
             });
+            // Aplicar cor de fundo da página ao body, se especificado
             if (design.pageBackgroundColor) {
                 $('body').css('background-color', design.pageBackgroundColor);
+            } else {
+                // Se não houver pageBackgroundColor, garantir que o body não tenha um fundo indesejado
+                $('body').css('background-color', 'initial'); 
             }
-            // Add animation class to the container
+            // Adicionar classe de animação ao container
             this.container.addClass(`api-quiz-builder-animation-${design.animation || 'fade'}`);
         }
 
@@ -337,7 +344,7 @@
                 this.handleResultActions();
             }
 
-            // Always attach footer scripts if enabled
+            // Sempre anexa os scripts do rodapé se habilitados
             this.initFooterScripts();
         }
 
@@ -572,10 +579,12 @@
             const locationScript = get(footerSettings, 'locationScript', '');
             const counterScript = get(footerSettings, 'counterScript', '');
 
-            // Clear any previous intervals/scripts
+            // Limpa quaisquer intervalos anteriores para evitar duplicação
             if (this.locationInterval) clearInterval(this.locationInterval);
             if (this.counterInterval) clearInterval(this.counterInterval);
-            this.container.find('.qnm-injected-script').remove(); // Remove previously injected scripts
+            
+            // Remove scripts injetados anteriormente para evitar duplicação
+            this.container.find('.qnm-injected-script').remove(); 
 
             const injectScript = (scriptContent, className) => {
                 if (!scriptContent) return;
@@ -587,12 +596,12 @@
                         if (child.tagName === 'SCRIPT') {
                             const newScript = document.createElement('script');
                             Array.from(child.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-                            newScript.textContent = child.textContent;
+                            newScript.text = child.textContent;
                             elementToAppend = newScript;
                         } else {
                             elementToAppend = child.cloneNode(true);
                         }
-                        $(elementToAppend).addClass(className); // Add class for easy removal
+                        $(elementToAppend).addClass(className); // Adiciona classe para fácil remoção
                         document.head.appendChild(elementToAppend);
                     });
                 } catch (error) {
@@ -600,43 +609,48 @@
                 }
             };
 
+            // Lógica de localização
             if (showLocation) {
                 if (locationScript) {
-                    injectScript(locationScript, 'qnm-injected-script qnm-location-script');
+                    injectScript(locationScript, 'qnm-location-script');
                 } else {
-                    // Default location script logic
+                    // Lógica padrão de script de localização
+                    const locationDisplayEl = this.container.find('#qnm-location-display');
+                    const locationCityDisplayEl = this.container.find('#qnm-location-city-display');
                     const mostrarCidade = async () => {
                         try {
                             const response = await fetch("https://api-bdc.io/data/reverse-geocode-client");
                             const contentType = response.headers.get("content-type");
                             if (!response.ok || !contentType || !contentType.includes("application/json")) {
                                 console.error("Erro ao obter a cidade: Resposta da API não foi OK ou não é JSON", response.status, contentType);
-                                this.container.find('#qnm-location-display').text('Brasil');
-                                this.container.find('#qnm-location-city-display').text('Brasil');
+                                locationDisplayEl.text('Brasil');
+                                locationCityDisplayEl.text('Brasil');
                                 return;
                             }
                             const data = await response.json();
                             const cidade = data.city || 'Cidade';
                             const estado = data.principalSubdivision || 'Estado';
-                            this.container.find('#qnm-location-display').text(`${cidade}, ${estado}`);
-                            this.container.find('#qnm-location-city-display').text(cidade);
+                            locationDisplayEl.text(`${cidade}, ${estado}`);
+                            locationCityDisplayEl.text(cidade);
                         } catch (error) {
                             console.error("Erro ao obter a cidade:", error);
-                            this.container.find('#qnm-location-display').text('Brasil');
-                            this.container.find('#qnm-location-city-display').text('Brasil');
+                            locationDisplayEl.text('Brasil');
+                            locationCityDisplayEl.text('Brasil');
                         }
                     };
                     mostrarCidade();
                 }
             }
 
+            // Lógica do contador
             if (showCounter) {
                 if (counterScript) {
-                    injectScript(counterScript, 'qnm-injected-script qnm-counter-script');
+                    injectScript(counterScript, 'qnm-counter-script');
                 } else {
-                    // Default counter script logic
+                    // Lógica padrão de script do contador
+                    const peopleCountEl = this.container.find('#qnm-people-count');
                     let peopleCount = Math.floor(Math.random() * (800 - 400 + 1)) + 400;
-                    this.container.find('#qnm-people-count').text(peopleCount);
+                    peopleCountEl.text(peopleCount);
 
                     const gerarNumeroAleatorio = () => {
                         return Math.floor(Math.random() * (800 - 400 + 1)) + 400;
@@ -654,17 +668,17 @@
                         this.counterInterval = setInterval(() => {
                             currentStep++;
                             const newCount = Math.round(startCount + (diff / steps) * currentStep);
-                            this.container.find('#qnm-people-count').text(newCount);
+                            peopleCountEl.text(newCount);
 
                             if (currentStep >= steps) {
                                 clearInterval(this.counterInterval);
                                 peopleCount = novoNumero;
-                                this.container.find('#qnm-people-count').text(peopleCount);
+                                peopleCountEl.text(peopleCount);
                                 setTimeout(atualizarNumero, Math.floor(Math.random() * (30000 - 15000 + 1)) + 15000);
                             }
                         }, 100);
                     };
-                    setTimeout(atualizarNumero, 1000); // Initial delay
+                    setTimeout(atualizarNumero, 1000); // Atraso inicial
                 }
             }
         }

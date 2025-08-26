@@ -1,6 +1,6 @@
 import React from 'react';
 import { QuizFooter } from './QuizFooter';
-// Removido: import { LocationScript } from './LocationScript'; // Não é mais necessário aqui
+import { LocationScript } from './LocationScript'; // Reintroduzido
 
 interface CompanyData {
   name: string;
@@ -13,6 +13,7 @@ interface CompanyFooterManagerProps {
   showLocation?: boolean;
   showCounter?: boolean;
   enableLocationScript?: boolean;
+  footerSettings?: any; // Adicionado
 }
 
 export const CompanyFooterManager: React.FC<CompanyFooterManagerProps> = ({
@@ -20,6 +21,7 @@ export const CompanyFooterManager: React.FC<CompanyFooterManagerProps> = ({
   showLocation = true,
   showCounter = true,
   enableLocationScript = true,
+  footerSettings, // Recebendo footerSettings
 }) => {
   // Dados padrão da empresa se não fornecidos
   const defaultCompanyData: CompanyData = {
@@ -33,13 +35,14 @@ export const CompanyFooterManager: React.FC<CompanyFooterManagerProps> = ({
   return (
     <>
       {/* Script de localização - invisível, apenas detecta. A lógica agora é tratada pelo plugin WP. */}
-      {/* {enableLocationScript && <LocationScript />} */}
+      {enableLocationScript && <LocationScript customScript={footerSettings?.locationScript} />}
       
       {/* Footer do quiz */}
       <QuizFooter
         companyData={finalCompanyData}
         showLocation={showLocation}
         showCounter={showCounter}
+        footerSettings={footerSettings} // Passando footerSettings
       />
     </>
   );

@@ -291,14 +291,18 @@
 
 .api-quiz-builder-footer-stats {
     margin-bottom: 15px !important;
+    display: flex !important; /* Adicionado para alinhar itens */
+    flex-wrap: wrap !important; /* Permite quebrar linha em telas pequenas */
+    justify-content: center !important; /* Centraliza os itens */
+    gap: 10px !important; /* Espaçamento entre os itens */
 }
 
 .api-quiz-builder-footer-location,
 .api-quiz-builder-footer-counter {
-    margin-bottom: 5px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    white-space: nowrap !important; /* Evita quebra de linha dentro do item */
 }
 
 .api-quiz-builder-footer-location span,

@@ -9,16 +9,17 @@ import { AdManager } from '@/components/quiz/AdManager';
 import { QuizFooter } from '@/components/quiz/QuizFooter';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { LocationScript } from '@/components/quiz/LocationScript'; // Reintroduzido
 
 interface QuizPreviewProps {
   quiz: Quiz;
-  // Removido: footerSettings?: any; // Não é mais necessário aqui
+  footerSettings?: any; // Reintroduzido
 }
 
-const QuizPreview = ({ quiz }: QuizPreviewProps) => { // Removido footerSettings do destructuring
+const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => { // footerSettings reintroduzido no destructuring
   const [currentSession, setCurrentSession] = useState(0);
   const [answers, setAnswers] = useState<{ [key: string]: string }>({});
-  const [formData, setFormData] = useState<{ [key: string]: string }>({});
+  const [formData, setFormData<{ [key: string]: string }>({});
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -89,7 +90,7 @@ const QuizPreview = ({ quiz }: QuizPreviewProps) => { // Removido footerSettings
         const formFields = currentSessionData.formFields || {};
         let missingFields = [];
         if (formFields.name && !formData.name?.trim()) missingFields.push('Nome');
-        if (formFields.email && formFields.email.length > 0 && !formData.email?.trim()) missingFields.push('E-mail'); // Adicionado verificação de length para email
+        if (formFields.email && formFields.email.length > 0 && !formData.email?.trim()) missingFields.push('E-mail');
         
         if (missingFields.length > 0) {
           toast.error(`Por favor, preencha os campos obrigatórios: ${missingFields.join(', ')}`);
@@ -439,8 +440,9 @@ const QuizPreview = ({ quiz }: QuizPreviewProps) => { // Removido footerSettings
         </div>
       </div>
 
-      {/* O footerSettings não é mais passado para QuizFooter, pois a lógica de footer é tratada pelo plugin WP */}
-      <QuizFooter /> 
+      {/* Passando footerSettings para QuizFooter e reintroduzindo LocationScript */}
+      <LocationScript customScript={footerSettings?.locationScript} />
+      <QuizFooter footerSettings={footerSettings} /> 
     </div>
   );
 };

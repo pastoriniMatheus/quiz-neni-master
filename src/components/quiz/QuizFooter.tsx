@@ -1,6 +1,4 @@
-import React from 'react';
-// Removido: import { LocationScript } from './LocationScript'; // Não é mais necessário aqui
-
+import React, { useEffect, useRef } from 'react';
 import { useFooterSettings } from '@/hooks/useFooterSettings';
 
 interface FooterSettings {
@@ -26,7 +24,7 @@ interface QuizFooterProps {
 }
 
 export const QuizFooter: React.FC<QuizFooterProps> = ({ 
-  footerSettings, 
+  footerSettings: propFooterSettings, // Renomeado para evitar conflito
   companyData,
   showLocation: propShowLocation,
   showCounter: propShowCounter 
@@ -35,14 +33,14 @@ export const QuizFooter: React.FC<QuizFooterProps> = ({
 
   // Use database settings if available, then props, then defaults
   const settings = {
-    showLocation: propShowLocation ?? dbFooterSettings?.showLocation ?? footerSettings?.showLocation ?? true,
-    showCounter: propShowCounter ?? dbFooterSettings?.showCounter ?? footerSettings?.showCounter ?? true,
-    locationScript: dbFooterSettings?.locationScript ?? footerSettings?.locationScript ?? '',
-    counterScript: dbFooterSettings?.counterScript ?? footerSettings?.counterScript ?? '',
-    companyName: dbFooterSettings?.companyName ?? companyData?.name ?? footerSettings?.companyName ?? 'Quiz NeniMaster',
-    privacyUrl: dbFooterSettings?.privacyUrl ?? companyData?.privacyUrl ?? footerSettings?.privacyUrl ?? '',
-    termsUrl: dbFooterSettings?.termsUrl ?? companyData?.termsUrl ?? footerSettings?.termsUrl ?? '',
-    footerText: dbFooterSettings?.footerText ?? footerSettings?.footerText ?? `© ${new Date().getFullYear()} {companyName}`
+    showLocation: propShowLocation ?? dbFooterSettings?.showLocation ?? propFooterSettings?.showLocation ?? true,
+    showCounter: propShowCounter ?? dbFooterSettings?.showCounter ?? propFooterSettings?.showCounter ?? true,
+    locationScript: dbFooterSettings?.locationScript ?? propFooterSettings?.locationScript ?? '',
+    counterScript: dbFooterSettings?.counterScript ?? propFooterSettings?.counterScript ?? '',
+    companyName: dbFooterSettings?.companyName ?? companyData?.name ?? propFooterSettings?.companyName ?? 'Quiz NeniMaster',
+    privacyUrl: dbFooterSettings?.privacyUrl ?? companyData?.privacyUrl ?? propFooterSettings?.privacyUrl ?? '',
+    termsUrl: dbFooterSettings?.termsUrl ?? companyData?.termsUrl ?? propFooterSettings?.termsUrl ?? '',
+    footerText: dbFooterSettings?.footerText ?? propFooterSettings?.footerText ?? `© {year} {companyName}`
   };
 
   // Processar o texto do footer substituindo variáveis
@@ -54,9 +52,23 @@ export const QuizFooter: React.FC<QuizFooterProps> = ({
     <footer className="bg-muted/30 border-t mt-auto">
       <div className="container mx-auto px-4 py-4">
         <div className="flex flex-col items-center gap-3 text-center">
-          {/* A lógica de LocationScript e CounterScript será injetada pelo plugin WordPress */}
-          {/* Este componente React não precisa mais renderizá-los diretamente */}
-          {/* Apenas o texto do footer e links */}
+          {(settings.showLocation || settings.showCounter) && (
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+              {settings.showLocation && (
+                <div className="flex items-center gap-1">
+                  <span>📍</span>
+                  <span id="qnm-location-display">Detectando localização...</span>
+                </div>
+              )}
+              {settings.showCounter && (
+                <div className="flex items-center gap-1">
+                  <span>👥</span>
+                  <span id="qnm-people-count" className="text-green-600">0</span>
+                  <span>pessoas em <span id="qnm-location-city-display"></span> respondendo neste momento</span>
+                </div>
+              )}
+            </div>
+          )}
           
           <div className="text-xs text-muted-foreground">
             <p className="mb-2">
