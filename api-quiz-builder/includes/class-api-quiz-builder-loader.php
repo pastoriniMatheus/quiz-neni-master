@@ -1,27 +1,5 @@
 <?php
-/**
- * The file that defines the plugin loader class.
- *
- * A class definition that holds all of the plugin's functionality.
- *
- * @link       https://nenimaster.com
- * @since      1.0.0
- *
- * @package    API_Quiz_Builder
- * @subpackage API_Quiz_Builder/includes
- */
-
-/**
- * The loader class.
- *
- * Orchestrates the hooks of the plugin.
- *
- * @since      1.0.0
- * @package    API_Quiz_Builder
- * @subpackage API_Quiz_Builder/includes
- * @author     NeniMaster <contato@nenimaster.com>
- */
-class API_Quiz_Builder_Loader {
+class Api_Quiz_Builder_Loader {
     protected $actions;
     protected $filters;
 
@@ -58,4 +36,3 @@ class API_Quiz_Builder_Loader {
         }
     }
 }
-?>
