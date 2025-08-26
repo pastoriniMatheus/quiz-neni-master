@@ -1,111 +1,87 @@
 <?php
 
 /**
- * The public-facing functionality of the plugin.
+ * Gerencia a exibição pública do plugin, incluindo o shortcode e scripts de frontend.
  *
- * @link       https://matheuspastorini.com.br
- * @since      1.0.0
- *
- * @package    Api_Quiz_Builder
- * @subpackage Api_Quiz_Builder/public
+ * @package API_Quiz_Builder
+ * @subpackage API_Quiz_Builder/public
  */
+class API_Quiz_Builder_Public {
 
-/**
- * The public-facing functionality of the plugin.
- *
- * Defines the plugin name, version, and two examples hooks for how to
- * enqueue the public-facing stylesheet and JavaScript.
- *
- * @package    Api_Quiz_Builder
- * @subpackage Api_Quiz_Builder/public
- * @author     Matheus Pastorini <matheus.pastorini@gmail.com>
- */
-class Api_Quiz_Builder_Public {
+    /**
+     * O identificador único deste plugin.
+     *
+     * @var string $plugin_name O nome do plugin usado para internacionalização e identificação.
+     */
+    private $plugin_name;
 
-	/**
-	 * The ID of this plugin.
-	 *
-	 * @since    1.0.0
-	 * @access   private
-	 * @var      string    $plugin_name    The ID of this plugin.
-	 */
-	private $plugin_name;
+    /**
+     * A versão atual do plugin.
+     *
+     * @var string $version A versão atual do plugin.
+     */
+    private $version;
 
-	/**
-	 * The version of this plugin.
-	 *
-	 * @since    1.0.0
-	 * @access   private
-	 * @var      string    $version    The current version of this plugin.
-	 */
-	private $version;
+    /**
+     * Construtor da classe.
+     *
+     * @param string $plugin_name O nome do plugin.
+     * @param string $version     A versão do plugin.
+     */
+    public function __construct( $plugin_name, $version ) {
+        $this->plugin_name = $plugin_name;
+        $this->version = $version;
+    }
 
-	/**
-	 * Initialize the class and set its properties.
-	 *
-	 * @since    1.0.0
-	 * @param      string    $plugin_name       The name of the plugin.
-	 * @param      string    $version    The version of this plugin.
-	 */
-	public function __construct( $plugin_name, $version ) {
+    /**
+     * Enfileira os scripts e estilos necessários para o frontend.
+     */
+    public function enqueue_public_scripts() {
+        wp_enqueue_style( $this->plugin_name . '-public', API_QUIZ_BUILDER_URL . 'public/css/api-quiz-builder-public.css', array(), $this->version, 'all' );
+        wp_enqueue_script( $this->plugin_name . '-public', API_QUIZ_BUILDER_URL . 'public/js/api-quiz-renderer.js', array( 'jquery' ), $this->version, true );
 
-		$this->plugin_name = $plugin_name;
-		$this->version = $version;
+        // Ponto CRÍTICO: Passa as configurações salvas para o JavaScript público
+        $settings = API_Quiz_Builder::get_plugin_settings();
+        wp_localize_script(
+            $this->plugin_name . '-public',
+            'quizNeniMasterPublic',
+            array(
+                'supabase_url'      => isset( $settings['supabase_url'] ) ? $settings['supabase_url'] : '',
+                'supabase_anon_key' => isset( $settings['supabase_anon_key'] ) ? $settings['supabase_anon_key'] : '',
+                'api_key'           => isset( $settings['api_key'] ) ? $settings['api_key'] : '',
+            )
+        );
+    }
 
-	}
+    /**
+     * Registra o shortcode [quiz_nenimaster].
+     */
+    public function register_shortcode() {
+        add_shortcode( 'quiz_nenimaster', array( $this, 'shortcode_callback' ) );
+    }
 
-	/**
-	 * Register the stylesheets for the public-facing side of the site.
-	 *
-	 * @since    1.0.0
-	 */
-	public function enqueue_styles() {
+    /**
+     * Callback para o shortcode [quiz_nenimaster].
+     *
+     * @param array $atts Os atributos do shortcode.
+     * @return string O HTML do contêiner do quiz.
+     */
+    public function shortcode_callback( $atts ) {
+        $atts = shortcode_atts(
+            array(
+                'slug' => '',
+            ),
+            $atts,
+            'quiz_nenimaster'
+        );
 
-		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/api-quiz-builder-public.css', array(), $this->version, 'all' );
+        $slug = sanitize_title( $atts['slug'] );
 
-	}
+        if ( empty( $slug ) ) {
+            return '<p style="color: red;">Erro: O shortcode [quiz_nenimaster] requer um atributo "slug". Ex: [quiz_nenimaster slug="meu-quiz-exemplo"]</p>';
+        }
 
-	/**
-	 * Register the JavaScript for the public-facing side of the site.
-	 *
-	 * @since    1.0.0
-	 */
-	public function enqueue_scripts() {
-
-		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/api-quiz-renderer.js', array( 'jquery' ), $this->version, false );
-
-		$supabase_url = get_option('api_quiz_builder_supabase_url');
-		$api_key = get_option('api_quiz_builder_api_key');
-		$supabase_anon_key = get_option('api_quiz_builder_supabase_anon_key');
-
-		wp_localize_script( $this->plugin_name, 'quizNeniMaster', array(
-			'supabase_url' => $supabase_url,
-			'api_key' => $api_key,
-			'supabase_anon_key' => $supabase_anon_key,
-		));
-
-	}
-
-	/**
-	 * Render the quiz shortcode.
-	 *
-	 * @since 1.0.0
-	 * @param array $atts Shortcode attributes.
-	 * @return string HTML output for the quiz.
-	 */
-	public function render_quiz_shortcode( $atts ) {
-		$atts = shortcode_atts( array(
-			'slug' => '',
-		), $atts, 'quiz_nenimaster' );
-
-		if ( empty( $atts['slug'] ) ) {
-			return '<p>Erro: O shortcode [quiz_nenimaster] requer um atributo "slug".</p>';
-		}
-
-		// The JavaScript will dynamically load and render the quiz into this container.
-		return sprintf( '<div id="quiz-nenimaster-container-%s" class="api-quiz-builder-container" data-quiz-slug="%s">
-			<div class="loading-message">Carregando quiz...</div>
-		</div>', esc_attr( $atts['slug'] ), esc_attr( $atts['slug'] ) );
-	}
-
+        // Retorna um div que será preenchido pelo JavaScript
+        return '<div class="api-quiz-builder-container" data-quiz-slug="' . esc_attr( $slug ) . '"></div>';
+    }
 }

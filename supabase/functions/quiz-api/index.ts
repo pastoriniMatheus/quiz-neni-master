@@ -1,5 +1,5 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts" // Atualizado para uma versão mais recente
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0' // Atualizado para uma versão mais recente
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,7 +45,16 @@ serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get('action');
     const pathParts = url.pathname.split('/');
-    const slug = pathParts.pop() || pathParts.pop(); // Extract slug from path
+    // O slug pode vir como o último segmento da URL ou como um parâmetro de busca, dependendo de como o WP o envia.
+    // Priorizamos o slug do path, se existir e não for 'quiz-api'.
+    let slug = pathParts.pop();
+    if (slug === 'quiz-api') { // Se o último segmento for 'quiz-api', significa que não há slug no path
+      slug = null;
+    }
+    // Se não encontrou no path, tenta do search params (para compatibilidade)
+    if (!slug) {
+      slug = url.searchParams.get('slug');
+    }
 
     console.log(`[${requestId}] Action: ${action}, Slug: ${slug}`);
 
@@ -67,7 +76,7 @@ serve(async (req) => {
     }
 
     // Rota para buscar um quiz específico por slug (usado no frontend do WP)
-    if (req.method === 'GET' && slug && slug !== 'quiz-api') {
+    if (req.method === 'GET' && slug) {
       const { data: quizData, error: quizError } = await supabase
         .from('quizzes')
         .select('*')

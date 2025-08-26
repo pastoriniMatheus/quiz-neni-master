@@ -44,18 +44,27 @@ export const Dashboard: React.FC = () => {
     try {
       console.log('Iniciando download do plugin...');
       
-      // Fetch plugin content from the dedicated file
-      const pluginContent = await fetch('/src/wordpress-plugin/quiz-nenimaster-plugin.php').then(res => res.text());
-      const readmeContent = await fetch('/src/wordpress-plugin/readme.txt').then(res => res.text());
-      
-      // Importar JSZip dinamicamente
-      const JSZip = (await import('jszip')).default;
-      
-      const zip = new JSZip();
-      
-      // Adicionar arquivos ao ZIP
-      zip.file('quiz-nenimaster/quiz-nenimaster-plugin.php', pluginContent);
-      zip.file('quiz-nenimaster/readme.txt', readmeContent);
+      const jszip = (await import('jszip')).default;
+      const zip = new jszip();
+
+      const filesToZip = [
+        'api-quiz-builder/api-quiz-builder.php',
+        'api-quiz-builder/includes/class-api-quiz-builder.php',
+        'api-quiz-builder/includes/class-api-quiz-builder-loader.php',
+        'api-quiz-builder/includes/class-api-quiz-builder-gutenberg.php',
+        'api-quiz-builder/public/class-api-quiz-builder-public.php',
+        'api-quiz-builder/public/js/api-quiz-renderer.js',
+        'api-quiz-builder/public/css/api-quiz-builder-public.css',
+        'api-quiz-builder/admin/class-api-quiz-builder-admin.php',
+        'api-quiz-builder/admin/css/api-quiz-builder-admin.css',
+        'api-quiz-builder/admin/js/api-quiz-builder-admin.js',
+        'api-quiz-builder/admin/js/gutenberg-block.js',
+      ];
+
+      for (const path of filesToZip) {
+        const content = await fetch(`/${path}`).then(res => res.text());
+        zip.file(path, content);
+      }
       
       // Gerar o arquivo ZIP
       const content = await zip.generateAsync({ type: 'blob' });
@@ -64,7 +73,7 @@ export const Dashboard: React.FC = () => {
       const url = window.URL.createObjectURL(content);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'quiz-nenimaster-wordpress-plugin.zip';
+      link.download = 'api-quiz-builder-wordpress-plugin.zip';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

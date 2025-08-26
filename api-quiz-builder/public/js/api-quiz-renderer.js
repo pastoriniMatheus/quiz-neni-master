@@ -1,10 +1,8 @@
 (function($) {
     'use strict';
 
-    // Corrigido: A função 'get' agora retorna o defaultValue se o resultado for null ou undefined.
     const get = (obj, path, defaultValue = undefined) => {
         const result = path.split('.').reduce((r, p) => r && r[p], obj);
-        // Retorna defaultValue se o resultado for null OU undefined
         return (result === undefined || result === null) ? defaultValue : result;
     };
 
@@ -14,10 +12,10 @@
             this.slug = slug;
             this.quizData = null;
             this.answers = {};
-            this.formData = {}; // For form session data
-            this.state = 'LOADING'; // LOADING, SESSION, AD, PROCESSING, RESULT, ERROR
+            this.formData = {};
+            this.state = 'LOADING'; // LOADING, SESSION, AD, PROCESSING, RESULT, ERROR, FINAL_AD
             this.currentSessionIndex = 0;
-            this.config = window.quizNeniMaster || {}; // Use quizNeniMaster from wp_localize_script
+            this.config = window.quizNeniMasterPublic || {}; // Use quizNeniMasterPublic from wp_localize_script
             this.redirectCountdown = 0;
             this.redirectTimer = null;
             this.adTimer = null;
@@ -73,6 +71,7 @@
                 case 'AD': content = this.renderAdState(); break;
                 case 'PROCESSING': content = this.renderLoadingState(get(this.quizData, 'settings.customTexts.processing', 'Processando suas informações...')); break;
                 case 'RESULT': content = this.renderResultState(); break;
+                case 'FINAL_AD': content = this.renderFinalAdState(); break; // Novo estado para o anúncio final
                 case 'ERROR': content = '<p style="color: red; text-align: center; padding: 20px;">Erro ao carregar o quiz. Verifique o slug e as configurações do plugin.</p>'; break;
             }
             this.container.html(content);
@@ -91,6 +90,7 @@
                 <p class="api-quiz-builder-quiz-description">${this.quizData.description || ''}</p>
                 <div class="api-quiz-builder-progress-bar"><div class="api-quiz-builder-progress-fill" style="width: ${progress}%;"></div></div>
                 <div class="api-quiz-builder-session-content ${cardClass}">${sessionContent}</div>
+                ${this.renderFooter()}
             `;
         }
 
@@ -155,6 +155,8 @@
             const adMessage = get(this.quizData, 'settings.customTexts.adMessage', 'Publicidade');
             const isTestMode = get(this.quizData, 'settings.testAdEnabled', false);
             const adCode = isTestMode ? '' : get(session, 'adCode', ''); // Use session adCode for interstitial ads
+            const design = get(this.quizData, 'design', {});
+            const buttonClass = `api-quiz-builder-button api-quiz-builder-button-style-${design.buttonStyle || 'rounded'}`;
 
             let adContent = '';
             if (isTestMode) {
@@ -178,8 +180,44 @@
                 <h2 class="api-quiz-builder-ad-message">${adMessage}</h2>
                 ${adContent}
                 <div class="api-quiz-builder-navigation-buttons">
-                    <button class="api-quiz-builder-button" id="ad-continue" style="display:${this.showSkipButton ? 'block' : 'none'};">Continuar</button>
+                    <button class="${buttonClass}" id="ad-continue" style="display:${this.showSkipButton ? 'block' : 'none'};">Continuar</button>
                 </div>
+                ${this.renderFooter()}
+            `;
+        }
+
+        renderFinalAdState() {
+            const adMessage = get(this.quizData, 'settings.customTexts.adMessage', 'Publicidade');
+            const isTestMode = get(this.quizData, 'settings.testAdEnabled', false);
+            const finalAdCode = isTestMode ? '' : get(this.quizData, 'settings.finalAdCode', '');
+            const design = get(this.quizData, 'design', {});
+            const buttonClass = `api-quiz-builder-button api-quiz-builder-button-style-${design.buttonStyle || 'rounded'}`;
+
+            let adContent = '';
+            if (isTestMode) {
+                adContent = `
+                    <div class="api-quiz-builder-ad-container test-mode">
+                        <p>Modo de teste de anúncio final. Clique em continuar.</p>
+                        <p>Aguarde <span id="final-ad-countdown">5</span> segundos...</p>
+                    </div>
+                `;
+            } else if (finalAdCode) {
+                adContent = `<div class="api-quiz-builder-ad-container" id="final-ad-code-container">${finalAdCode}</div>`;
+            } else {
+                adContent = `
+                    <div class="api-quiz-builder-ad-container">
+                        <p>Nenhum código de anúncio final configurado.</p>
+                    </div>
+                `;
+            }
+
+            return `
+                <h2 class="api-quiz-builder-ad-message">${adMessage}</h2>
+                ${adContent}
+                <div class="api-quiz-builder-navigation-buttons">
+                    <button class="${buttonClass}" id="final-ad-continue" style="display:${this.showSkipButton ? 'block' : 'none'};">Continuar</button>
+                </div>
+                ${this.renderFooter()}
             `;
         }
 
@@ -195,6 +233,7 @@
                     </div>
                     <p class="api-quiz-builder-loading-subtext">Analisando suas respostas...</p>
                 </div>
+                ${this.renderFooter()}
             `;
         }
 
@@ -216,6 +255,64 @@
                         <button class="${buttonClass}" id="restart-quiz-btn">Refazer Quiz</button>
                     `}
                 </div>
+                ${this.renderFooter()}
+            `;
+        }
+
+        renderFooter() {
+            const footerSettings = get(this.quizData, 'footer_settings', {});
+            const showLocation = get(footerSettings, 'showLocation', true);
+            const showCounter = get(footerSettings, 'showCounter', true);
+            const companyName = get(footerSettings, 'companyName', 'Quiz NeniMaster');
+            const privacyUrl = get(footerSettings, 'privacyUrl', '#');
+            const termsUrl = get(footerSettings, 'termsUrl', '#');
+            let footerText = get(footerSettings, 'footerText', `© {year} {companyName}`);
+
+            footerText = footerText
+                .replace('{companyName}', companyName)
+                .replace('{year}', new Date().getFullYear().toString());
+
+            let locationHtml = '';
+            if (showLocation) {
+                locationHtml = `
+                    <div class="api-quiz-builder-footer-location">
+                        <span>📍</span>
+                        <span id="qnm-location-display">Detectando localização...</span>
+                    </div>
+                `;
+            }
+
+            let counterHtml = '';
+            if (showCounter) {
+                counterHtml = `
+                    <div class="api-quiz-builder-footer-counter">
+                        <span>👥</span>
+                        <span id="qnm-people-count" class="text-green-600">0</span>
+                        <span>pessoas em <span id="qnm-location-city-display"></span> respondendo neste momento</span>
+                    </div>
+                `;
+            }
+
+            return `
+                <footer class="api-quiz-builder-footer">
+                    <div class="api-quiz-builder-footer-content">
+                        ${(showLocation || showCounter) ? `
+                            <div class="api-quiz-builder-footer-stats">
+                                ${locationHtml}
+                                ${counterHtml}
+                            </div>
+                        ` : ''}
+                        <div class="api-quiz-builder-footer-links">
+                            Ao prosseguir você concorda com os nossos<br/>
+                            <a href="${termsUrl}" target="_blank" rel="noopener noreferrer">Termos de Uso</a>
+                            {' e '}
+                            <a href="${privacyUrl}" target="_blank" rel="noopener noreferrer">Políticas de Privacidade</a>
+                        </div>
+                        <p class="api-quiz-builder-footer-text">
+                            ${footerText}
+                        </p>
+                    </div>
+                </footer>
             `;
         }
 
@@ -233,9 +330,15 @@
             } else if (this.state === 'AD') {
                 this.loadAdContent();
                 this.container.on('click', '#ad-continue', this.handleAdContinue.bind(this));
+            } else if (this.state === 'FINAL_AD') {
+                this.loadFinalAdContent();
+                this.container.on('click', '#final-ad-continue', this.handleFinalAdContinue.bind(this));
             } else if (this.state === 'RESULT') {
                 this.handleResultActions();
             }
+
+            // Always attach footer scripts if enabled
+            this.initFooterScripts();
         }
 
         handleQuestionAnswer(e) {
@@ -276,6 +379,7 @@
         moveToNextStep() {
             const session = this.quizData.sessions[this.currentSessionIndex];
             const isLastSession = this.currentSessionIndex >= this.quizData.sessions.length - 1;
+            const settings = get(this.quizData, 'settings', {});
 
             if (session.showAd) {
                 this.state = 'AD';
@@ -283,6 +387,9 @@
             } else if (!isLastSession) {
                 this.currentSessionIndex++;
                 this.state = 'SESSION';
+            } else if (settings.showFinalAd) {
+                this.state = 'FINAL_AD';
+                this.showSkipButton = false; // Reset for final ad
             } else {
                 this.completeQuiz();
                 return;
@@ -298,7 +405,6 @@
             const adContinueButton = this.container.find('#ad-continue');
             const adCountdownEl = this.container.find('#ad-countdown');
 
-            // Clear any previous timers
             if (this.adTimer) clearTimeout(this.adTimer);
             this.showSkipButton = false;
             adContinueButton.hide();
@@ -318,7 +424,6 @@
                 this.adTimer = testTimer;
             } else if (adCode && adContainer.length) {
                 adContainer.html(adCode);
-                // Re-execute scripts within the ad code
                 adContainer.find('script').each(function() {
                     const oldScript = this;
                     const newScript = document.createElement('script');
@@ -329,9 +434,8 @@
                 this.adTimer = setTimeout(() => {
                     this.showSkipButton = true;
                     adContinueButton.show();
-                }, 5000); // Show skip button after 5 seconds for real ads
+                }, 5000);
             } else {
-                // No ad code, just show continue button after a short delay
                 this.adTimer = setTimeout(() => {
                     this.showSkipButton = true;
                     adContinueButton.show();
@@ -341,150 +445,7 @@
 
         handleAdContinue() {
             if (this.adTimer) clearTimeout(this.adTimer);
-            const isLastSession = this.currentSessionIndex >= this.quizData.sessions.length - 1;
-            const settings = get(this.quizData, 'settings', {});
-
-            if (!isLastSession) {
-                this.currentSessionIndex++;
-                this.state = 'SESSION';
-                this.render();
-            } else if (settings.showFinalAd) {
-                // If it's the last session and there's a final ad, show it
-                this.state = 'FINAL_AD'; // New state for final ad
-                this.render();
-            } else {
-                this.completeQuiz();
-            }
-        }
-
-        async completeQuiz() {
-            this.state = 'PROCESSING';
-            this.render();
-
-            const allResponses = { ...this.answers, ...this.formData };
-            const sessionId = 'wp-session-' + Date.now();
-            const userAgent = navigator.userAgent;
-
-            const submitUrl = `${this.config.supabase_url}/functions/v1/submit-quiz-response`;
-            try {
-                await $.ajax({
-                    url: submitUrl,
-                    method: 'POST',
-                    contentType: 'application/json',
-                    headers: { 'Authorization': `Bearer ${this.config.supabase_anon_key}` },
-                    data: JSON.stringify({
-                        quizId: this.quizData.id,
-                        sessionId: sessionId,
-                        userAgent: userAgent,
-                        responseData: allResponses
-                    })
-                });
-            } catch (e) { 
-                console.error("Falha ao enviar respostas.", e); 
-                // Optionally, show an error message to the user
-            }
-
-            const processingTime = get(this.quizData, 'settings.processingTime', 3) * 1000;
-            setTimeout(() => {
-                this.state = 'RESULT';
-                this.render();
-            }, processingTime);
-        }
-
-        handleResultActions() {
-            const redirect = get(this.quizData, 'settings.redirect', {});
-            const finalAdCode = get(this.quizData, 'settings.finalAdCode', '');
-            const showFinalAd = get(this.quizData, 'settings.showFinalAd', false);
-            const isTestMode = get(this.quizData, 'settings.testAdEnabled', false);
-
-            if (showFinalAd) {
-                // Render final ad
-                this.state = 'FINAL_AD';
-                this.render();
-                // The FINAL_AD state will handle its own continuation to redirect or restart
-                return;
-            }
-
-            if (redirect.enabled && redirect.url) {
-                let countdown = redirect.delay || 5;
-                const countdownEl = this.container.find('#redirect-countdown');
-                const redirectBtn = this.container.find('#redirect-btn');
-
-                if (this.redirectTimer) clearInterval(this.redirectTimer);
-
-                const updateCountdown = () => {
-                    if (countdown <= 0) {
-                        clearInterval(this.redirectTimer);
-                        window.open(redirect.url, '_blank'); // Open in new tab
-                    } else {
-                        countdownEl.text(`Redirecionando em ${countdown} segundos...`);
-                        countdown--;
-                        this.redirectTimer = setTimeout(updateCountdown, 1000);
-                    }
-                };
-                updateCountdown();
-                redirectBtn.on('click', () => { 
-                    if (this.redirectTimer) clearInterval(this.redirectTimer);
-                    window.open(redirect.url, '_blank'); 
-                });
-            } else {
-                this.container.on('click', '#restart-quiz-btn', () => {
-                    window.location.reload(); // Reload page to restart quiz
-                });
-            }
-        }
-    }
-
-    // Extend QuizRenderer for FINAL_AD state
-    class FullQuizRenderer extends QuizRenderer {
-        render() {
-            if (this.state === 'FINAL_AD') {
-                this.container.html(this.renderFinalAdState());
-                this.attachEventListeners();
-            } else {
-                super.render();
-            }
-        }
-
-        renderFinalAdState() {
-            const adMessage = get(this.quizData, 'settings.customTexts.adMessage', 'Publicidade');
-            const isTestMode = get(this.quizData, 'settings.testAdEnabled', false);
-            const finalAdCode = get(this.quizData, 'settings.finalAdCode', '');
-
-            let adContent = '';
-            if (isTestMode) {
-                adContent = `
-                    <div class="api-quiz-builder-ad-container test-mode">
-                        <p>Modo de teste de anúncio final. Clique em continuar.</p>
-                        <p>Aguarde <span id="final-ad-countdown">5</span> segundos...</p>
-                    </div>
-                `;
-            } else if (finalAdCode) {
-                adContent = `<div class="api-quiz-builder-ad-container" id="final-ad-code-container">${finalAdCode}</div>`;
-            } else {
-                adContent = `
-                    <div class="api-quiz-builder-ad-container">
-                        <p>Nenhum código de anúncio final configurado.</p>
-                    </div>
-                `;
-            }
-
-            return `
-                <h2 class="api-quiz-builder-ad-message">${adMessage}</h2>
-                ${adContent}
-                <div class="api-quiz-builder-navigation-buttons">
-                    <button class="api-quiz-builder-button" id="final-ad-continue" style="display:${this.showSkipButton ? 'block' : 'none'};">Continuar</button>
-                </div>
-            `;
-        }
-
-        attachEventListeners() {
-            super.attachEventListeners(); // Call parent's event listeners first
-
-            if (this.state === 'FINAL_AD') {
-                this.loadFinalAdContent();
-                this.container.on('click', '#final-ad-continue', this.handleFinalAdContinue.bind(this));
-            }
+            this.moveToNextStep();
         }
 
         loadFinalAdContent() {
@@ -537,13 +498,182 @@
             this.state = 'RESULT';
             this.render();
         }
-    }
 
+        async completeQuiz() {
+            this.state = 'PROCESSING';
+            this.render();
+
+            const allResponses = { ...this.answers, ...this.formData };
+            const sessionId = 'wp-session-' + Date.now();
+            const userAgent = navigator.userAgent;
+
+            const submitUrl = `${this.config.supabase_url}/functions/v1/submit-quiz-response`;
+            try {
+                await $.ajax({
+                    url: submitUrl,
+                    method: 'POST',
+                    contentType: 'application/json',
+                    headers: { 'Authorization': `Bearer ${this.config.supabase_anon_key}` },
+                    data: JSON.stringify({
+                        quizId: this.quizData.id,
+                        sessionId: sessionId,
+                        userAgent: userAgent,
+                        responseData: allResponses
+                    })
+                });
+            } catch (e) { 
+                console.error("Falha ao enviar respostas.", e); 
+                // Optionally, show an error message to the user
+            }
+
+            const processingTime = get(this.quizData, 'settings.processingTime', 3) * 1000;
+            setTimeout(() => {
+                this.state = 'RESULT';
+                this.render();
+            }, processingTime);
+        }
+
+        handleResultActions() {
+            const redirect = get(this.quizData, 'settings.redirect', {});
+            
+            if (redirect.enabled && redirect.url) {
+                let countdown = redirect.delay || 5;
+                const countdownEl = this.container.find('#redirect-countdown');
+                const redirectBtn = this.container.find('#redirect-btn');
+
+                if (this.redirectTimer) clearInterval(this.redirectTimer);
+
+                const updateCountdown = () => {
+                    if (countdown <= 0) {
+                        clearInterval(this.redirectTimer);
+                        window.open(redirect.url, '_blank'); // Open in new tab
+                    } else {
+                        countdownEl.text(`Redirecionando em ${countdown} segundos...`);
+                        countdown--;
+                        this.redirectTimer = setTimeout(updateCountdown, 1000);
+                    }
+                };
+                updateCountdown();
+                redirectBtn.on('click', () => { 
+                    if (this.redirectTimer) clearInterval(this.redirectTimer);
+                    window.open(redirect.url, '_blank'); 
+                });
+            } else {
+                this.container.on('click', '#restart-quiz-btn', () => {
+                    window.location.reload(); // Reload page to restart quiz
+                });
+            }
+        }
+
+        initFooterScripts() {
+            const footerSettings = get(this.quizData, 'footer_settings', {});
+            const showLocation = get(footerSettings, 'showLocation', true);
+            const showCounter = get(footerSettings, 'showCounter', true);
+            const locationScript = get(footerSettings, 'locationScript', '');
+            const counterScript = get(footerSettings, 'counterScript', '');
+
+            // Clear any previous intervals/scripts
+            if (this.locationInterval) clearInterval(this.locationInterval);
+            if (this.counterInterval) clearInterval(this.counterInterval);
+            this.container.find('.qnm-injected-script').remove(); // Remove previously injected scripts
+
+            const injectScript = (scriptContent, className) => {
+                if (!scriptContent) return;
+                try {
+                    const tempContainer = document.createElement('div');
+                    tempContainer.innerHTML = scriptContent;
+                    Array.from(tempContainer.children).forEach(child => {
+                        let elementToAppend;
+                        if (child.tagName === 'SCRIPT') {
+                            const newScript = document.createElement('script');
+                            Array.from(child.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                            newScript.textContent = child.textContent;
+                            elementToAppend = newScript;
+                        } else {
+                            elementToAppend = child.cloneNode(true);
+                        }
+                        $(elementToAppend).addClass(className); // Add class for easy removal
+                        document.head.appendChild(elementToAppend);
+                    });
+                } catch (error) {
+                    console.error('Erro ao analisar ou executar script personalizado:', error);
+                }
+            };
+
+            if (showLocation) {
+                if (locationScript) {
+                    injectScript(locationScript, 'qnm-injected-script qnm-location-script');
+                } else {
+                    // Default location script logic
+                    const mostrarCidade = async () => {
+                        try {
+                            const response = await fetch("https://api-bdc.io/data/reverse-geocode-client");
+                            const contentType = response.headers.get("content-type");
+                            if (!response.ok || !contentType || !contentType.includes("application/json")) {
+                                console.error("Erro ao obter a cidade: Resposta da API não foi OK ou não é JSON", response.status, contentType);
+                                this.container.find('#qnm-location-display').text('Brasil');
+                                this.container.find('#qnm-location-city-display').text('Brasil');
+                                return;
+                            }
+                            const data = await response.json();
+                            const cidade = data.city || 'Cidade';
+                            const estado = data.principalSubdivision || 'Estado';
+                            this.container.find('#qnm-location-display').text(`${cidade}, ${estado}`);
+                            this.container.find('#qnm-location-city-display').text(cidade);
+                        } catch (error) {
+                            console.error("Erro ao obter a cidade:", error);
+                            this.container.find('#qnm-location-display').text('Brasil');
+                            this.container.find('#qnm-location-city-display').text('Brasil');
+                        }
+                    };
+                    mostrarCidade();
+                }
+            }
+
+            if (showCounter) {
+                if (counterScript) {
+                    injectScript(counterScript, 'qnm-injected-script qnm-counter-script');
+                } else {
+                    // Default counter script logic
+                    let peopleCount = Math.floor(Math.random() * (800 - 400 + 1)) + 400;
+                    this.container.find('#qnm-people-count').text(peopleCount);
+
+                    const gerarNumeroAleatorio = () => {
+                        return Math.floor(Math.random() * (800 - 400 + 1)) + 400;
+                    };
+
+                    const atualizarNumero = () => {
+                        const novoNumero = gerarNumeroAleatorio();
+                        const steps = 100; 
+                        let currentStep = 0;
+                        const startCount = peopleCount;
+                        const diff = novoNumero - startCount;
+
+                        if (this.counterInterval) clearInterval(this.counterInterval);
+
+                        this.counterInterval = setInterval(() => {
+                            currentStep++;
+                            const newCount = Math.round(startCount + (diff / steps) * currentStep);
+                            this.container.find('#qnm-people-count').text(newCount);
+
+                            if (currentStep >= steps) {
+                                clearInterval(this.counterInterval);
+                                peopleCount = novoNumero;
+                                this.container.find('#qnm-people-count').text(peopleCount);
+                                setTimeout(atualizarNumero, Math.floor(Math.random() * (30000 - 15000 + 1)) + 15000);
+                            }
+                        }, 100);
+                    };
+                    setTimeout(atualizarNumero, 1000); // Initial delay
+                }
+            }
+        }
+    }
 
     $(document).ready(function() {
         $('.api-quiz-builder-container').each(function() {
             const slug = $(this).data('quiz-slug');
-            if (slug) new FullQuizRenderer(this, slug);
+            if (slug) new QuizRenderer(this, slug);
         });
     });
 

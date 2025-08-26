@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,27 +7,33 @@ import { toast } from 'sonner';
 export const WordPressPluginDownload: React.FC = () => {
   const downloadPlugin = async () => {
     try {
-      // Criar o conteúdo do plugin PHP
-      const pluginContent = await fetch('/src/wordpress-plugin/quiz-nenimaster-plugin.php').then(res => res.text());
-      const readmeContent = await fetch('/src/wordpress-plugin/readme.txt').then(res => res.text());
-      
-      // Importar JSZip dinamicamente para reduzir bundle inicial
-      const JSZip = (await import('jszip')).default;
-      
-      const zip = new JSZip();
-      
-      // Adicionar arquivos ao ZIP
-      zip.file('quiz-nenimaster/quiz-nenimaster-plugin.php', pluginContent);
-      zip.file('quiz-nenimaster/readme.txt', readmeContent);
-      
-      // Gerar o arquivo ZIP
+      const jszip = (await import('jszip')).default;
+      const zip = new jszip();
+
+      const filesToZip = [
+        'api-quiz-builder/api-quiz-builder.php',
+        'api-quiz-builder/includes/class-api-quiz-builder.php',
+        'api-quiz-builder/includes/class-api-quiz-builder-loader.php',
+        'api-quiz-builder/includes/class-api-quiz-builder-gutenberg.php',
+        'api-quiz-builder/public/class-api-quiz-builder-public.php',
+        'api-quiz-builder/public/js/api-quiz-renderer.js',
+        'api-quiz-builder/public/css/api-quiz-builder-public.css',
+        'api-quiz-builder/admin/class-api-quiz-builder-admin.php',
+        'api-quiz-builder/admin/css/api-quiz-builder-admin.css',
+        'api-quiz-builder/admin/js/api-quiz-builder-admin.js',
+        'api-quiz-builder/admin/js/gutenberg-block.js',
+      ];
+
+      for (const path of filesToZip) {
+        const content = await fetch(`/${path}`).then(res => res.text());
+        zip.file(path, content);
+      }
+
       const content = await zip.generateAsync({ type: 'blob' });
-      
-      // Criar link para download
       const url = window.URL.createObjectURL(content);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'quiz-nenimaster-wordpress-plugin.zip';
+      link.download = 'api-quiz-builder-wordpress-plugin.zip';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -62,6 +67,7 @@ export const WordPressPluginDownload: React.FC = () => {
             <li>• Configuração fácil no painel admin</li>
             <li>• Suporte a domínio personalizado e Supabase</li>
             <li>• Auto-redimensionamento responsivo</li>
+            <li>• Bloco Gutenberg para inserção fácil</li>
           </ul>
         </div>
 
@@ -70,13 +76,14 @@ export const WordPressPluginDownload: React.FC = () => {
             <Download className="h-4 w-4 mr-2" />
             Baixar Plugin (.zip)
           </Button>
-          <Button 
+          {/* Removido o link direto para readme.txt, pois agora está dentro do zip */}
+          {/* <Button 
             variant="outline" 
             size="icon"
             onClick={() => window.open('/src/wordpress-plugin/readme.txt', '_blank')}
           >
             <FileText className="h-4 w-4" />
-          </Button>
+          </Button> */}
         </div>
 
         <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">

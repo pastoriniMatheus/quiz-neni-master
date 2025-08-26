@@ -12,10 +12,10 @@ import { toast } from 'sonner';
 
 interface QuizPreviewProps {
   quiz: Quiz;
-  footerSettings?: any;
+  // Removido: footerSettings?: any; // Não é mais necessário aqui
 }
 
-const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
+const QuizPreview = ({ quiz }: QuizPreviewProps) => { // Removido footerSettings do destructuring
   const [currentSession, setCurrentSession] = useState(0);
   const [answers, setAnswers] = useState<{ [key: string]: string }>({});
   const [formData, setFormData] = useState<{ [key: string]: string }>({});
@@ -89,7 +89,7 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
         const formFields = currentSessionData.formFields || {};
         let missingFields = [];
         if (formFields.name && !formData.name?.trim()) missingFields.push('Nome');
-        if (formFields.email && !formData.email?.trim()) missingFields.push('E-mail');
+        if (formFields.email && formFields.email.length > 0 && !formData.email?.trim()) missingFields.push('E-mail'); // Adicionado verificação de length para email
         
         if (missingFields.length > 0) {
           toast.error(`Por favor, preencha os campos obrigatórios: ${missingFields.join(', ')}`);
@@ -439,7 +439,8 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => {
         </div>
       </div>
 
-      <QuizFooter footerSettings={footerSettings} />
+      {/* O footerSettings não é mais passado para QuizFooter, pois a lógica de footer é tratada pelo plugin WP */}
+      <QuizFooter /> 
     </div>
   );
 };

@@ -35,6 +35,7 @@ export const Sidebar: React.FC = () => {
         'api-quiz-builder/includes/class-api-quiz-builder-gutenberg.php',
         'api-quiz-builder/public/class-api-quiz-builder-public.php',
         'api-quiz-builder/public/js/api-quiz-renderer.js',
+        'api-quiz-builder/public/css/api-quiz-builder-public.css', // Adicionado o CSS público
         'api-quiz-builder/admin/class-api-quiz-builder-admin.php',
         'api-quiz-builder/admin/css/api-quiz-builder-admin.css',
         'api-quiz-builder/admin/js/api-quiz-builder-admin.js',

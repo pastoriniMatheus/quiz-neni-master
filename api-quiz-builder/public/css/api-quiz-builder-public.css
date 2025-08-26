@@ -289,6 +289,10 @@
     text-decoration: underline !important;
 }
 
+.api-quiz-builder-footer-stats {
+    margin-bottom: 15px !important;
+}
+
 .api-quiz-builder-footer-location,
 .api-quiz-builder-footer-counter {
     margin-bottom: 5px !important;
@@ -309,7 +313,7 @@
     margin-right: 5px !important;
 }
 
-.api-quiz-builder-footer-location .text-green-600 {
+.api-quiz-builder-footer-counter .text-green-600 {
     color: var(--primary-color, #28a745) !important; /* Use primary color for counter */
     font-weight: bold !important;
 }

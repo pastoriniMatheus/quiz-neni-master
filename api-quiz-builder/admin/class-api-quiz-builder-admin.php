@@ -1,111 +1,177 @@
 <?php
-class Api_Quiz_Builder_Admin {
+
+/**
+ * Gerencia a interface e a lógica do plugin no painel administrativo do WordPress.
+ *
+ * @package API_Quiz_Builder
+ * @subpackage API_Quiz_Builder/admin
+ */
+class API_Quiz_Builder_Admin {
+
+    /**
+     * O identificador único deste plugin.
+     *
+     * @var string $plugin_name O nome do plugin usado para internacionalização e identificação.
+     */
     private $plugin_name;
+
+    /**
+     * A versão atual do plugin.
+     *
+     * @var string $version A versão atual do plugin.
+     */
     private $version;
 
+    /**
+     * Construtor da classe.
+     *
+     * @param string $plugin_name O nome do plugin.
+     * @param string $version     A versão do plugin.
+     */
     public function __construct( $plugin_name, $version ) {
         $this->plugin_name = $plugin_name;
         $this->version = $version;
     }
 
-    public function add_options_page() {
-        // Use add_menu_page to create a top-level menu item
+    /**
+     * Adiciona um item de menu para as configurações do plugin no painel do WordPress.
+     */
+    public function add_plugin_admin_menu() {
         add_menu_page(
-            'NeniMaster Quiz-API Configurações', // Page Title
-            'Quiz NeniMaster',                  // Menu Title
-            'manage_options',                   // Capability
-            $this->plugin_name,                 // Menu Slug
-            array( $this, 'create_admin_page' ), // Callback function
-            'dashicons-forms',                  // Icon
-            25                                  // Position
+            'Quiz NeniMaster Settings',
+            'Quiz NeniMaster',
+            'manage_options',
+            $this->plugin_name,
+            array( $this, 'settings_page' ),
+            'dashicons-forms',
+            60
         );
     }
 
-    public function enqueue_styles_and_scripts($hook) {
-        // Corresponds to the top-level slug from add_menu_page
-        if ('toplevel_page_' . $this->plugin_name !== $hook) {
-            return;
-        }
-        wp_enqueue_style(
-            $this->plugin_name,
-            plugin_dir_url( __FILE__ ) . 'css/api-quiz-builder-admin.css',
-            array(),
-            $this->version,
-            'all'
+    /**
+     * Registra as seções e campos de configuração usando a API de Settings do WordPress.
+     */
+    public function settings_init() {
+        register_setting( 'api_quiz_builder_group', 'api_quiz_builder_settings' );
+
+        add_settings_section(
+            'api_quiz_builder_section_general',
+            'Configurações Gerais',
+            null,
+            'api_quiz_builder_page'
         );
-        wp_enqueue_script(
-            $this->plugin_name,
-            plugin_dir_url( __FILE__ ) . 'js/api-quiz-builder-admin.js',
-            array( 'jquery' ),
-            $this->version,
-            true
+
+        add_settings_field(
+            'supabase_url',
+            'URL do Sistema (Supabase)',
+            array( $this, 'render_supabase_url_field' ),
+            'api_quiz_builder_page',
+            'api_quiz_builder_section_general'
         );
-        
-        $options = get_option('api_quiz_builder_settings');
-        wp_localize_script($this->plugin_name, 'quizNeniMaster', [
-            'apiUrl' => isset($options['supabase_url']) ? $options['supabase_url'] : '',
-            'apiKey' => isset($options['api_key']) ? $options['api_key'] : '',
-            'anonKey' => isset($options['supabase_anon_key']) ? $options['supabase_anon_key'] : '',
-        ]);
+
+        add_settings_field(
+            'supabase_anon_key',
+            'Supabase Anon Key',
+            array( $this, 'render_supabase_anon_key_field' ),
+            'api_quiz_builder_page',
+            'api_quiz_builder_section_general'
+        );
+
+        add_settings_field(
+            'api_key',
+            'Chave da API (Gerada no Painel)',
+            array( $this, 'render_api_key_field' ),
+            'api_quiz_builder_page',
+            'api_quiz_builder_section_general'
+        );
+
+        add_settings_section(
+            'api_quiz_builder_section_quizzes',
+            'Meus Quizzes Publicados',
+            array( $this, 'render_quizzes_section_description' ),
+            'api_quiz_builder_page'
+        );
     }
 
-    public function create_admin_page() {
+    /**
+     * Renderiza o campo para a URL do Supabase.
+     */
+    public function render_supabase_url_field() {
+        $options = API_Quiz_Builder::get_plugin_settings();
+        $value = isset( $options['supabase_url'] ) ? esc_attr( $options['supabase_url'] ) : '';
+        echo '<input type="url" id="supabase_url" name="api_quiz_builder_settings[supabase_url]" value="' . $value . '" class="regular-text" placeholder="https://your-project-id.supabase.co" />';
+        echo '<p class="description">A URL base do seu projeto Supabase.</p>';
+    }
+
+    /**
+     * Renderiza o campo para a Supabase Anon Key.
+     */
+    public function render_supabase_anon_key_field() {
+        $options = API_Quiz_Builder::get_plugin_settings();
+        $value = isset( $options['supabase_anon_key'] ) ? esc_attr( $options['supabase_anon_key'] ) : '';
+        echo '<input type="text" id="supabase_anon_key" name="api_quiz_builder_settings[supabase_anon_key]" value="' . $value . '" class="regular-text" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />';
+        echo '<p class="description">A chave pública (anon key) do seu projeto Supabase.</p>';
+    }
+
+    /**
+     * Renderiza o campo para a Chave da API.
+     */
+    public function render_api_key_field() {
+        $options = API_Quiz_Builder::get_plugin_settings();
+        $value = isset( $options['api_key'] ) ? esc_attr( $options['api_key'] ) : '';
+        echo '<input type="text" id="api_key" name="api_quiz_builder_settings[api_key]" value="' . $value . '" class="regular-text" placeholder="qb_..." />';
+        echo '<p class="description">Uma chave de API gerada no painel do Quiz NeniMaster para autenticação.</p>';
+    }
+
+    /**
+     * Renderiza a descrição da seção de quizzes.
+     */
+    public function render_quizzes_section_description() {
+        echo '<p>Clique no botão abaixo para carregar e listar todos os quizzes publicados do seu sistema Quiz NeniMaster.</p>';
+        echo '<button id="load-quizzes-btn" class="button button-primary">Carregar Quizzes</button>';
+        echo '<span class="spinner" id="load-quizzes-spinner"></span>';
+        echo '<div id="quiz-list-container" class="qnm-quiz-list"><p id="quiz-list-status" class="qnm-status-text">Nenhum quiz carregado.</p></div>';
+    }
+
+    /**
+     * Renderiza o HTML da página de configurações.
+     */
+    public function settings_page() {
         ?>
         <div class="wrap qnm-wrap">
             <div class="qnm-header">
-                <h1>NeniMaster Quiz-API</h1>
-                <p>Configure suas credenciais e gerencie seus quizzes.</p>
+                <h1><span class="dashicons dashicons-forms" style="font-size: 1.2em; margin-right: 5px;"></span> Quiz NeniMaster Settings</h1>
+                <p>Configure a integração do seu site WordPress com o sistema Quiz NeniMaster.</p>
             </div>
 
-            <div class="qnm-grid">
-                <div class="qnm-card">
-                    <h2>Configurações da API</h2>
-                    <form method="post" action="options.php">
-                        <?php
-                        settings_fields( 'api_quiz_builder_options_group' );
-                        do_settings_sections( $this->plugin_name );
-                        submit_button('Salvar Configurações');
-                        ?>
-                    </form>
-                </div>
-                <div class="qnm-card">
-                    <h2>Quizzes Disponíveis</h2>
-                    <p>Clique no botão abaixo para carregar seus quizzes publicados. As credenciais da API devem ser salvas primeiro.</p>
-                    <button id="load-quizzes-btn" class="button button-primary">Carregar Quizzes</button>
-                    <span id="load-quizzes-spinner" class="spinner"></span>
-                    <div id="quiz-list-container" class="qnm-quiz-list">
-                        <p id="quiz-list-status" class="qnm-status-text">Aguardando para carregar quizzes...</p>
-                    </div>
-                </div>
-            </div>
+            <form method="post" action="options.php">
+                <?php
+                settings_fields( 'api_quiz_builder_group' );
+                do_settings_sections( 'api_quiz_builder_page' );
+                submit_button();
+                ?>
+            </form>
         </div>
         <?php
     }
 
-    public function register_settings() {
-        register_setting(
-            'api_quiz_builder_options_group',
-            'api_quiz_builder_settings'
+    /**
+     * Enfileira o script api-quiz-builder-admin.js e o estilo api-quiz-builder-admin.css.
+     */
+    public function enqueue_admin_scripts() {
+        wp_enqueue_style( $this->plugin_name . '-admin', API_QUIZ_BUILDER_URL . 'admin/css/api-quiz-builder-admin.css', array(), $this->version, 'all' );
+        wp_enqueue_script( $this->plugin_name . '-admin', API_QUIZ_BUILDER_URL . 'admin/js/api-quiz-builder-admin.js', array( 'jquery' ), $this->version, true );
+
+        // Ponto CRÍTICO: Passa as configurações salvas para o JavaScript
+        $settings = API_Quiz_Builder::get_plugin_settings();
+        wp_localize_script(
+            $this->plugin_name . '-admin',
+            'quizNeniMasterAdmin',
+            array(
+                'supabase_url'      => isset( $settings['supabase_url'] ) ? $settings['supabase_url'] : '',
+                'supabase_anon_key' => isset( $settings['supabase_anon_key'] ) ? $settings['supabase_anon_key'] : '',
+                'api_key'           => isset( $settings['api_key'] ) ? $settings['api_key'] : '',
+            )
         );
-
-        add_settings_section(
-            'api_quiz_builder_main_section',
-            null, // Title is handled in the page markup
-            null,
-            $this->plugin_name
-        );
-
-        add_settings_field('supabase_url', 'Supabase URL', array( $this, 'field_html_callback' ), $this->plugin_name, 'api_quiz_builder_main_section', ['id' => 'supabase_url', 'type' => 'url', 'placeholder' => 'https://<project-id>.supabase.co']);
-        add_settings_field('supabase_anon_key', 'Supabase Anon Key', array( $this, 'field_html_callback' ), $this->plugin_name, 'api_quiz_builder_main_section', ['id' => 'supabase_anon_key', 'type' => 'text', 'class' => 'large-text']);
-        add_settings_field('api_key', 'Chave da API (x-api-key)', array( $this, 'field_html_callback' ), $this->plugin_name, 'api_quiz_builder_main_section', ['id' => 'api_key', 'type' => 'text', 'class' => 'large-text']);
-    }
-
-    public function field_html_callback($args) {
-        $options = get_option('api_quiz_builder_settings');
-        $value = isset($options[$args['id']]) ? esc_attr($options[$args['id']]) : '';
-        $type = isset($args['type']) ? $args['type'] : 'text';
-        $class = isset($args['class']) ? $args['class'] : 'regular-text';
-        $placeholder = isset($args['placeholder']) ? $args['placeholder'] : '';
-        echo "<input type='{$type}' name='api_quiz_builder_settings[{$args['id']}]' value='{$value}' class='{$class}' placeholder='{$placeholder}' />";
     }
 }

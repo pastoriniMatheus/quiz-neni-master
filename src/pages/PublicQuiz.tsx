@@ -7,7 +7,7 @@ import { Quiz } from '@/types/quiz';
 
 const PublicQuiz = () => {
   const { slug } = useParams<{ slug: string }>();
-  const [footerSettings, setFooterSettings] = useState(null);
+  // Removido: const [footerSettings, setFooterSettings] = useState(null); // Não é mais necessário aqui
 
   const { data: quiz, isLoading, error } = useQuery({
     queryKey: ['public-quiz', slug],
@@ -58,28 +58,29 @@ const PublicQuiz = () => {
     enabled: !!slug,
   });
 
-  // Fetch footer settings from the quiz owner's profile
-  useEffect(() => {
-    if (quiz?.user_id) {
-      const fetchFooterSettings = async () => {
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('footer_settings')
-            .eq('id', quiz.user_id)
-            .single();
+  // Removido: Fetch footer settings from the quiz owner's profile
+  // A lógica de footer_settings agora é buscada pela Edge Function e passada para o JS do plugin WP.
+  // useEffect(() => {
+  //   if (quiz?.user_id) {
+  //     const fetchFooterSettings = async () => {
+  //       try {
+  //         const { data, error } = await supabase
+  //           .from('profiles')
+  //           .select('footer_settings')
+  //           .eq('id', quiz.user_id)
+  //           .single();
 
-          if (!error && data?.footer_settings) {
-            setFooterSettings(data.footer_settings as any);
-          }
-        } catch (error) {
-          console.error('Erro ao buscar configurações do rodapé:', error);
-        }
-      };
+  //         if (!error && data?.footer_settings) {
+  //           setFooterSettings(data.footer_settings as any);
+  //         }
+  //       } catch (error) {
+  //         console.error('Erro ao buscar configurações do rodapé:', error);
+  //       }
+  //     };
 
-      fetchFooterSettings();
-    }
-  }, [quiz?.user_id]);
+  //     fetchFooterSettings();
+  //   }
+  // }, [quiz?.user_id]);
 
   if (isLoading) {
     return (
@@ -107,10 +108,8 @@ const PublicQuiz = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Quiz Content - now receives footerSettings */}
-      <QuizPreview quiz={quiz} footerSettings={footerSettings} />
-      
-      {/* REMOVIDO: O QuizFooter duplicado foi removido daqui */}
+      {/* Quiz Content - footerSettings não é mais passado diretamente */}
+      <QuizPreview quiz={quiz} />
     </div>
   );
 };

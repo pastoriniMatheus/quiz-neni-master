@@ -1,6 +1,6 @@
-
 import React from 'react';
-import { LocationScript } from './LocationScript';
+// Removido: import { LocationScript } from './LocationScript'; // Não é mais necessário aqui
+
 import { useFooterSettings } from '@/hooks/useFooterSettings';
 
 interface FooterSettings {
@@ -54,11 +54,9 @@ export const QuizFooter: React.FC<QuizFooterProps> = ({
     <footer className="bg-muted/30 border-t mt-auto">
       <div className="container mx-auto px-4 py-4">
         <div className="flex flex-col items-center gap-3 text-center">
-          {(settings.showLocation || settings.showCounter) && (
-            <div className="mb-2">
-              <LocationScript customScript={settings.locationScript} />
-            </div>
-          )}
+          {/* A lógica de LocationScript e CounterScript será injetada pelo plugin WordPress */}
+          {/* Este componente React não precisa mais renderizá-los diretamente */}
+          {/* Apenas o texto do footer e links */}
           
           <div className="text-xs text-muted-foreground">
             <p className="mb-2">

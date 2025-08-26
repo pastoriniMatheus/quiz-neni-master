@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -141,6 +140,7 @@ export const QuizView: React.FC = () => {
       </div>
 
       <div className="flex-1 overflow-hidden">
+        {/* O footerSettings não é mais passado para QuizPreview, pois a lógica de footer é tratada pelo plugin WP */}
         <QuizPreview quiz={quiz} />
       </div>
     </div>

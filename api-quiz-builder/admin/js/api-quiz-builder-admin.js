@@ -7,20 +7,29 @@ jQuery(document).ready(function($) {
     const spinner = $('#load-quizzes-spinner');
 
     if (loadBtn.length === 0) {
+        console.error('Botão #load-quizzes-btn não encontrado.');
         return;
     }
 
     loadBtn.on('click', function() {
-        const supabaseUrl = quizNeniMaster.supabase_url; // Corrected variable name
-        const apiKey = quizNeniMaster.api_key;
-        const anonKey = quizNeniMaster.supabase_anon_key;
+        console.log('Botão "Carregar Quizzes" clicado.');
+        // Acessa as variáveis localizadas por wp_localize_script
+        const supabaseUrl = quizNeniMasterAdmin.supabase_url;
+        const apiKey = quizNeniMasterAdmin.api_key;
+        const anonKey = quizNeniMasterAdmin.supabase_anon_key;
         
+        console.log('URL do Supabase:', supabaseUrl);
+        console.log('Chave Anon (últimos 4):', anonKey ? '...' + anonKey.slice(-4) : 'Nenhuma');
+        console.log('Chave da API (últimos 4):', apiKey ? '...' + apiKey.slice(-4) : 'Nenhuma');
+
         if (!supabaseUrl || !apiKey || !anonKey) {
-            statusEl.text('Erro: Por favor, preencha e salve a URL do Sistema, a Supabase Anon Key e a Chave da API.').css('color', 'red');
+            statusEl.text('Erro: Por favor, preencha e salve a URL do Sistema, a Supabase Anon Key e a Chave da API nas configurações acima.').css('color', 'red');
             return;
         }
 
+        // Constrói a URL do endpoint da Edge Function quiz-api com o parâmetro action=list_all
         const endpoint = supabaseUrl.replace(/\/$/, '') + '/functions/v1/quiz-api?action=list_all';
+        console.log('Endpoint da requisição:', endpoint);
 
         $.ajax({
             url: endpoint,
@@ -37,6 +46,7 @@ jQuery(document).ready(function($) {
             },
             success: function(response) {
                 const quizzes = response.data; // Assumindo que a API retorna { data: [...] }
+                console.log('Sucesso! Quizzes recebidos:', quizzes);
                 container.empty();
                 if (quizzes && quizzes.length > 0) {
                     quizzes.forEach(function(quiz) {
@@ -58,13 +68,20 @@ jQuery(document).ready(function($) {
                 }
             },
             error: function(jqXHR) {
+                console.error('Erro na requisição AJAX:', {
+                    status: jqXHR.status,
+                    statusText: jqXHR.statusText,
+                    responseText: jqXHR.responseText,
+                    errorThrown: jqXHR.responseJSON ? jqXHR.responseJSON.error : 'N/A'
+                });
                 let errorMsg = `Erro ao carregar quizzes: ${jqXHR.statusText} (${jqXHR.status}).`;
-                if (jqXHR.responseText) {
+                if (jqXHR.responseJSON && jqXHR.responseJSON.error) {
+                    errorMsg += ` Detalhe: ${jqXHR.responseJSON.error}`;
+                } else if (jqXHR.responseText) {
                     try {
                         const errorJson = JSON.parse(jqXHR.responseText);
-                        errorMsg += ` Detalhe: ${errorJson.error || jqXHR.responseText}`;
+                        errorMsg += ` Resposta do servidor: ${errorJson.error || jqXHR.responseText}`;
                     } catch (e) {
-                        // If responseText is not JSON, append it directly
                         errorMsg += ` Resposta do servidor: ${jqXHR.responseText}`;
                     }
                 }
