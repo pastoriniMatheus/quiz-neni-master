@@ -75,7 +75,7 @@
                 'background-color': 'var(--background-color)',
                 'color': 'var(--text-color)'
             });
-            console.log('Container CSS variables set:', this.container[0].style.cssText);
+            console.log('Container CSS variables set:', this.container.attr('style'));
             
             // Add animation class to the container
             this.container.addClass(`api-quiz-builder-animation-${design.animation || 'fade'}`);
@@ -567,8 +567,9 @@
             
             if (redirect.enabled && redirect.url) {
                 let countdown = redirect.delay || 5;
-                const countdownEl = this.footerElement.find('#redirect-countdown'); // Buscar no footerElement
-                const redirectBtn = this.footerElement.find('#redirect-btn'); // Buscar no footerElement
+                // Buscar no container principal do quiz, não no footerElement
+                const countdownEl = this.container.find('#redirect-countdown'); 
+                const redirectBtn = this.container.find('#redirect-btn'); 
 
                 if (this.redirectTimer) clearInterval(this.redirectTimer);
 

@@ -271,19 +271,24 @@
 
 /* Footer styles */
 .api-quiz-builder-footer {
-    /* Ajustado para usar a cor secundária como background e texto da cor principal */
-    background-color: var(--page-background-color, #f8f8f8) !important; /* Use page background for a muted background */
-    color: var(--text-color, #777) !important; /* Use text color for general footer text */
-    margin-top: 30px !important;
+    position: fixed !important; /* Rodapé fixo */
+    bottom: 0 !important; /* Na parte inferior */
+    left: 0 !important; /* Alinhado à esquerda */
+    width: 100% !important; /* Largura total */
+    z-index: 1000 !important; /* Garante que fique acima de outros elementos */
+    
+    background-color: var(--page-background-color, #f8f8f8) !important; /* Fundo neutro */
+    color: var(--text-color, #777) !important; /* Cor do texto */
+    margin-top: 0 !important; /* Remove margem superior */
     padding: 20px !important;
-    border-top: 1px solid var(--secondary-color, #eee) !important; /* Border with secondary color */
+    border-top: 1px solid var(--secondary-color, #eee) !important; /* Borda superior */
     text-align: center !important;
     font-size: 0.85em !important;
-    box-sizing: border-box !important; /* Garante que padding não aumente a largura total */
+    box-sizing: border-box !important;
 }
 
 .api-quiz-builder-footer a {
-    color: var(--primary-color, #007bff) !important; /* Links use primary color */
+    color: var(--primary-color, #007bff) !important; /* Links usam a cor primária */
     text-decoration: underline !important;
 }
 
@@ -320,7 +325,7 @@
 }
 
 .api-quiz-builder-footer-counter .text-green-600 {
-    color: var(--primary-color, #28a745) !important; /* Use primary color for counter */
+    color: var(--primary-color, #28a745) !important; /* Contador usa a cor primária */
     font-weight: bold !important;
 }
 
