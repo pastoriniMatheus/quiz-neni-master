@@ -1,10 +1,10 @@
 <?php
 /**
- * Plugin Name: NiniMaster Quiz
+ * Plugin Name: API Quiz Builder
  * Description: Integra quizzes do Quiz NeniMaster via API para renderização direta no WordPress.
  * Version: 1.0.0
- * Author: Matheus Pastorini
- * Author URI: 
+ * Author: NeniMaster
+ * Author URI: https://nenimaster.com
  * License: GPL2
  */
 

@@ -3,10 +3,19 @@
 
     const API_QUIZ_BUILDER_PUBLIC_VARS = window.api_quiz_builder_public_vars || {};
     const REST_API_URL = API_QUIZ_BUILDER_PUBLIC_VARS.rest_url;
+    const SUPABASE_ANON_KEY = API_QUIZ_BUILDER_PUBLIC_VARS.supabase_anon_key;
+    const SUPABASE_URL = API_QUIZ_BUILDER_PUBLIC_VARS.supabase_url;
+    const SUBMIT_RESPONSE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/submit-quiz-response`;
 
     if (!REST_API_URL) {
         console.error('API Quiz Builder: REST API URL not defined.');
         return;
+    }
+    if (!SUPABASE_ANON_KEY) {
+        console.error('API Quiz Builder: Supabase Anon Key not defined. Quiz submissions will fail.');
+    }
+    if (!SUPABASE_URL) {
+        console.error('API Quiz Builder: Supabase URL not defined. Quiz submissions will fail.');
     }
 
     class QuizRenderer {
@@ -66,6 +75,16 @@
                 // Apply page background color to body if specified
                 if (design.pageBackgroundColor) {
                     document.body.style.backgroundColor = design.pageBackgroundColor;
+                } else {
+                    // Reset if not specified, to avoid lingering styles from other quizzes
+                    document.body.style.backgroundColor = ''; 
+                }
+
+                // Apply animation class to the main container
+                if (design.animation) {
+                    this.container.classList.add(`api-quiz-builder-animation-${design.animation}`);
+                } else {
+                    this.container.classList.remove('api-quiz-builder-animation-fade', 'api-quiz-builder-animation-slide', 'api-quiz-builder-animation-scale');
                 }
             }
         }
@@ -135,50 +154,62 @@
 
         renderQuestion(session) {
             const selectedOption = this.answers[session.id];
+            const design = this.quizData.design || {};
+            const buttonClass = `api-quiz-builder-option-button api-quiz-builder-button-style-${design.buttonStyle || 'rounded'}`;
+            const cardClass = `api-quiz-builder-card-style-${design.cardStyle || 'modern'}`;
+
             return `
-                <h2 class="api-quiz-builder-question-title">${session.title}</h2>
-                <div class="api-quiz-builder-options-grid">
-                    ${session.options.map((option, index) => `
-                        <button class="api-quiz-builder-option-button ${selectedOption === option ? 'selected' : ''}" data-option="${option}">
-                            ${option}
-                        </button>
-                    `).join('')}
+                <div class="${cardClass}">
+                    <h2 class="api-quiz-builder-question-title">${session.title}</h2>
+                    <div class="api-quiz-builder-options-grid">
+                        ${session.options.map((option, index) => `
+                            <button class="${buttonClass} ${selectedOption === option ? 'selected' : ''}" data-option="${option}">
+                                ${option}
+                            </button>
+                        `).join('')}
+                    </div>
                 </div>
             `;
         }
 
         renderForm(session) {
             const formFields = session.formFields || {};
+            const design = this.quizData.design || {};
+            const buttonClass = `api-quiz-builder-button api-quiz-builder-button-style-${design.buttonStyle || 'rounded'}`;
+            const cardClass = `api-quiz-builder-card-style-${design.cardStyle || 'modern'}`;
+
             return `
-                <h2 class="api-quiz-builder-question-title">${session.title}</h2>
-                <div class="api-quiz-builder-form-fields">
-                    ${formFields.name ? `
-                        <div>
-                            <label for="form-name-${this.quizSlug}">Nome Completo ${session.required ? '*' : ''}</label>
-                            <input type="text" id="form-name-${this.quizSlug}" value="${this.formData.name || ''}" placeholder="Seu nome completo" />
-                        </div>
-                    ` : ''}
-                    ${formFields.email ? `
-                        <div>
-                            <label for="form-email-${this.quizSlug}">E-mail ${session.required ? '*' : ''}</label>
-                            <input type="email" id="form-email-${this.quizSlug}" value="${this.formData.email || ''}" placeholder="seu@email.com" />
-                        </div>
-                    ` : ''}
-                    ${formFields.phone ? `
-                        <div>
-                            <label for="form-phone-${this.quizSlug}">Telefone/WhatsApp</label>
-                            <input type="tel" id="form-phone-${this.quizSlug}" value="${this.formData.phone || ''}" placeholder="(11) 99999-9999" />
-                        </div>
-                    ` : ''}
-                    ${formFields.message ? `
-                        <div>
-                            <label for="form-message-${this.quizSlug}">Mensagem</label>
-                            <textarea id="form-message-${this.quizSlug}" placeholder="Sua mensagem">${this.formData.message || ''}</textarea>
-                        </div>
-                    ` : ''}
-                </div>
-                <div class="api-quiz-builder-navigation-buttons">
-                    <button class="api-quiz-builder-button" id="api-quiz-next-button">Continuar</button>
+                <div class="${cardClass}">
+                    <h2 class="api-quiz-builder-question-title">${session.title}</h2>
+                    <div class="api-quiz-builder-form-fields">
+                        ${formFields.name ? `
+                            <div>
+                                <label for="form-name-${this.quizSlug}">Nome Completo ${session.required ? '*' : ''}</label>
+                                <input type="text" id="form-name-${this.quizSlug}" value="${this.formData.name || ''}" placeholder="Seu nome completo" />
+                            </div>
+                        ` : ''}
+                        ${formFields.email ? `
+                            <div>
+                                <label for="form-email-${this.quizSlug}">E-mail ${session.required ? '*' : ''}</label>
+                                <input type="email" id="form-email-${this.quizSlug}" value="${this.formData.email || ''}" placeholder="seu@email.com" />
+                            </div>
+                        ` : ''}
+                        ${formFields.phone ? `
+                            <div>
+                                <label for="form-phone-${this.quizSlug}">Telefone/WhatsApp</label>
+                                <input type="tel" id="form-phone-${this.quizSlug}" value="${this.formData.phone || ''}" placeholder="(11) 99999-9999" />
+                            </div>
+                        ` : ''}
+                        ${formFields.message ? `
+                            <div>
+                                <label for="form-message-${this.quizSlug}">Mensagem</label>
+                                <textarea id="form-message-${this.quizSlug}" placeholder="Sua mensagem">${this.formData.message || ''}</textarea>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="api-quiz-builder-navigation-buttons">
+                        <button class="${buttonClass}" id="api-quiz-next-button">Continuar</button>
+                    </div>
                 </div>
             `;
         }
@@ -187,6 +218,8 @@
             const adCode = isFinalAd ? this.quizData.settings.finalAdCode : session?.adCode;
             const isTestMode = this.quizData.settings.testAdEnabled;
             const adMessage = this.quizData.settings.customTexts.adMessage || 'Veja um anúncio para continuar';
+            const design = this.quizData.design || {};
+            const buttonClass = `api-quiz-builder-button api-quiz-builder-button-style-${design.buttonStyle || 'rounded'}`;
 
             let adContent = '';
             if (isTestMode) {
@@ -215,7 +248,7 @@
                     <h2 class="api-quiz-builder-ad-message">${adMessage}</h2>
                     ${adContent}
                     <div class="api-quiz-builder-navigation-buttons">
-                        <button class="api-quiz-builder-button" id="api-quiz-ad-continue-button" style="display: none;">Continuar</button>
+                        <button class="${buttonClass}" id="api-quiz-ad-continue-button" style="display: none;">Continuar</button>
                     </div>
                 </div>
             `;
@@ -236,6 +269,8 @@
             const resultText = this.quizData.settings.customTexts.result || 'Resultado calculado!';
             const redirectEnabled = this.quizData.settings.redirect.enabled && this.quizData.settings.redirect.url;
             const redirectUrl = this.quizData.settings.redirect.url;
+            const design = this.quizData.design || {};
+            const buttonClass = `api-quiz-builder-button api-quiz-builder-button-style-${design.buttonStyle || 'rounded'}`;
 
             let redirectMessage = '';
             if (redirectEnabled && this.state.redirectCountdown > 0) {
@@ -249,9 +284,9 @@
                     <p class="api-quiz-builder-result-description">Com base no seu perfil, selecionamos as melhores opções.</p>
                     <div class="api-quiz-builder-navigation-buttons">
                         ${redirectEnabled ? `
-                            <button class="api-quiz-builder-button" id="api-quiz-redirect-button">Ver Recomendações</button>
+                            <button class="${buttonClass}" id="api-quiz-redirect-button">Ver Recomendações</button>
                         ` : `
-                            <button class="api-quiz-builder-button" id="api-quiz-restart-button">Refazer Quiz</button>
+                            <button class="${buttonClass}" id="api-quiz-restart-button">Refazer Quiz</button>
                         `}
                     </div>
                     ${redirectMessage}
@@ -260,7 +295,16 @@
         }
 
         renderFooter() {
-            const footerSettings = this.quizData.footer_settings || {
+            // Check if quizData and its user_id are available
+            if (!this.quizData || !this.quizData.user_id) {
+                console.warn('API Quiz Builder: Cannot render footer, quizData or user_id is missing.');
+                return;
+            }
+        
+            // Fetch footer settings from the main app's API
+            // This assumes the main app has a public endpoint for footer settings by user_id
+            // For now, we'll use a placeholder or default if not available via API
+            let footerSettings = this.quizData.footer_settings || {
                 showLocation: true,
                 showCounter: true,
                 companyName: 'Quiz NeniMaster',
@@ -268,11 +312,16 @@
                 termsUrl: '#',
                 footerText: '© {year} {companyName}'
             };
-
+        
+            // If footer_settings are not directly in quizData, try to fetch from a public profile endpoint
+            // This would require a new public REST API endpoint in the main app or a direct Supabase call
+            // For simplicity, we'll rely on the `quizData.footer_settings` which should be populated by the WP REST API.
+            // If it's not, the default will be used.
+        
             const processedFooterText = (footerSettings.footerText || '© {year} {companyName}')
                 .replace('{companyName}', footerSettings.companyName || 'Quiz NeniMaster')
                 .replace('{year}', new Date().getFullYear().toString());
-
+        
             const footerHtml = `
                 <footer class="api-quiz-builder-footer">
                     <div class="api-quiz-builder-footer-content">
@@ -305,8 +354,6 @@
                     </div>
                 </footer>
             `;
-            // Append footer to the body or a specific container outside the quiz container if needed
-            // For now, let's append it right after the quiz container for simplicity
             const existingFooter = document.querySelector('.api-quiz-builder-footer');
             if (existingFooter) {
                 existingFooter.remove();
@@ -352,9 +399,7 @@
                     } else {
                         elementToAppend = child.cloneNode(true);
                     }
-                    // Append to target element or head/body based on script needs
-                    // For simplicity, let's append to the target element's parent or body
-                    document.body.appendChild(elementToAppend); // Or targetElement.parentNode.appendChild(elementToAppend);
+                    document.body.appendChild(elementToAppend);
                 });
             } catch (error) {
                 console.error('Error injecting custom script:', error);
@@ -528,10 +573,11 @@
             const quizId = this.quizData.id;
 
             try {
-                const response = await fetch(`https://riqfafiivzpotfjqfscd.supabase.co/functions/v1/submit-quiz-response`, {
+                const response = await fetch(SUBMIT_RESPONSE_FUNCTION_URL, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, // Add Authorization header
                     },
                     body: JSON.stringify({
                         quizId,

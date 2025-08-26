@@ -33,6 +33,8 @@
                 showResult: false,
                 redirectCountdown: 0,
             };
+            this.adTimer = null; // To clear ad countdown timer
+            this.redirectTimer = null; // To clear redirect countdown timer
 
             this.init();
         }
@@ -221,22 +223,22 @@
             const design = this.quizData.design || {};
             const buttonClass = `api-quiz-builder-button api-quiz-builder-button-style-${design.buttonStyle || 'rounded'}`;
 
-            let adContent = '';
+            let adContentHtml = '';
             if (isTestMode) {
-                adContent = `
+                adContentHtml = `
                     <div class="api-quiz-builder-ad-container test-mode">
                         <p>Anúncio de Teste: ${adMessage}</p>
                         <p>Aguarde <span id="ad-countdown">5</span> segundos...</p>
                     </div>
                 `;
             } else if (adCode) {
-                adContent = `
-                    <div class="api-quiz-builder-ad-container">
+                adContentHtml = `
+                    <div class="api-quiz-builder-ad-container" id="ad-content-container">
                         ${adCode}
                     </div>
                 `;
             } else {
-                adContent = `
+                adContentHtml = `
                     <div class="api-quiz-builder-ad-container">
                         <p>Nenhum código de anúncio configurado.</p>
                     </div>
@@ -246,12 +248,23 @@
             return `
                 <div class="api-quiz-builder-ad-screen">
                     <h2 class="api-quiz-builder-ad-message">${adMessage}</h2>
-                    ${adContent}
+                    ${adContentHtml}
                     <div class="api-quiz-builder-navigation-buttons">
                         <button class="${buttonClass}" id="api-quiz-ad-continue-button" style="display: none;">Continuar</button>
                     </div>
                 </div>
             `;
+        }
+
+        // Helper to inject and execute scripts
+        injectAndExecuteScripts(containerElement) {
+            const scripts = Array.from(containerElement.querySelectorAll('script'));
+            scripts.forEach((oldScript) => {
+                const newScript = document.createElement('script');
+                Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+                newScript.textContent = oldScript.textContent;
+                oldScript.parentNode.replaceChild(newScript, oldScript);
+            });
         }
 
         renderLoadingScreen() {
@@ -477,21 +490,33 @@
 
         attachAdEventListeners() {
             const adContinueButton = this.container.querySelector('#api-quiz-ad-continue-button');
+            const adContentContainer = this.container.querySelector('#ad-content-container');
+
+            if (adContentContainer) {
+                this.injectAndExecuteScripts(adContentContainer);
+            }
+
             if (adContinueButton) {
+                // Clear any existing timer to prevent multiple timers running
+                if (this.adTimer) clearTimeout(this.adTimer);
+
                 if (this.quizData.settings.testAdEnabled) {
                     let countdown = 5;
                     const countdownEl = this.container.querySelector('#ad-countdown');
-                    const timer = setInterval(() => {
+                    const timerFunc = () => {
                         countdown--;
                         if (countdownEl) countdownEl.textContent = countdown;
                         if (countdown <= 0) {
-                            clearInterval(timer);
+                            clearTimeout(this.adTimer);
                             adContinueButton.style.display = 'block';
+                        } else {
+                            this.adTimer = setTimeout(timerFunc, 1000);
                         }
-                    }, 1000);
+                    };
+                    this.adTimer = setTimeout(timerFunc, 1000); // Start countdown after 1 second
                 } else {
                     // For real ads, show button after a fixed delay (e.g., 5 seconds)
-                    setTimeout(() => {
+                    this.adTimer = setTimeout(() => {
                         adContinueButton.style.display = 'block';
                     }, 5000);
                 }
@@ -541,6 +566,8 @@
         }
 
         handleAdComplete() {
+            // Clear any ad timers when ad is completed
+            if (this.adTimer) clearTimeout(this.adTimer);
             this.state.showAd = false;
             this.state.showFinalAd = false;
             this.proceedToNextStep();
@@ -549,16 +576,19 @@
         proceedToNextStep() {
             const currentSessionData = this.quizData.sessions[this.currentSessionIndex];
 
+            // If current session has an ad and it hasn't been shown yet, show it
             if (currentSessionData?.showAd && !this.state.showAd) {
                 this.state.showAd = true;
                 this.render();
                 return;
             }
 
+            // If there are more sessions, move to the next one
             if (this.currentSessionIndex < this.quizData.sessions.length - 1) {
                 this.currentSessionIndex++;
                 this.render();
             } else {
+                // All sessions completed, proceed to final handling
                 this.handleComplete();
             }
         }
@@ -612,17 +642,23 @@
 
         startRedirectCountdown() {
             if (this.quizData.settings.redirect.enabled && this.quizData.settings.redirect.url) {
+                // Clear any existing timer to prevent multiple timers running
+                if (this.redirectTimer) clearTimeout(this.redirectTimer);
+
                 let delay = this.quizData.settings.redirect.delay || 3;
                 this.state.redirectCountdown = delay;
                 
-                const timer = setInterval(() => {
+                const timerFunc = () => {
                     this.state.redirectCountdown--;
                     this.render(); // Re-render to update countdown
                     if (this.state.redirectCountdown <= 0) {
-                        clearInterval(timer);
+                        clearTimeout(this.redirectTimer);
                         window.open(this.quizData.settings.redirect.url, '_blank');
+                    } else {
+                        this.redirectTimer = setTimeout(timerFunc, 1000);
                     }
-                }, 1000);
+                };
+                this.redirectTimer = setTimeout(timerFunc, 1000); // Start countdown after 1 second
             }
         }
 
