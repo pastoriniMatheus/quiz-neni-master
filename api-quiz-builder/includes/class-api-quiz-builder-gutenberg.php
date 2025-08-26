@@ -16,7 +16,7 @@ class Api_Quiz_Builder_Gutenberg {
         wp_register_script(
             $this->plugin_name . '-gutenberg-block',
             plugin_dir_url(dirname(__FILE__)) . 'admin/js/gutenberg-block.js',
-            array('wp-blocks', 'wp-element', 'wp-components', 'wp-api-fetch'),
+            array('wp-blocks', 'wp-element', 'wp-components', 'wp-api-fetch', 'wp-edit-post', 'wp-plugins'),
             $this->version,
             true
         );
@@ -54,8 +54,9 @@ class Api_Quiz_Builder_Gutenberg {
         $options = get_option('api_quiz_builder_settings');
         $supabase_url = isset($options['supabase_url']) ? $options['supabase_url'] : '';
         $api_key = isset($options['api_key']) ? $options['api_key'] : '';
+        $anon_key = isset($options['supabase_anon_key']) ? $options['supabase_anon_key'] : '';
 
-        if (empty($supabase_url) || empty($api_key)) {
+        if (empty($supabase_url) || empty($api_key) || empty($anon_key)) {
             return new WP_Error('no_settings', 'As credenciais da API não estão configuradas.', array('status' => 500));
         }
 
@@ -64,6 +65,7 @@ class Api_Quiz_Builder_Gutenberg {
         $response = wp_remote_get($request_url, array(
             'headers' => array(
                 'x-api-key' => $api_key,
+                'Authorization' => 'Bearer ' . $anon_key, // <-- THIS WAS THE MISSING LINE
             ),
             'timeout' => 20,
         ));
