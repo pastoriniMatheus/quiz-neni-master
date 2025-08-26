@@ -14,8 +14,6 @@ serve(async (req) => {
 
   try {
     const requestId = crypto.randomUUID().substring(0, 8);
-    console.log(`[${requestId}] 📥 ${req.method} ${req.url}`);
-    
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -38,14 +36,26 @@ serve(async (req) => {
     }
 
     const url = new URL(req.url);
+    const action = url.searchParams.get('action');
+
+    // Rota para listar todos os quizzes do usuário
+    if (req.method === 'GET' && action === 'list_all') {
+        const { data, error } = await supabase
+            .from('quizzes')
+            .select('title, slug')
+            .eq('user_id', keyData.user_id)
+            .eq('status', 'published')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return new Response(JSON.stringify({ data }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     const pathParts = url.pathname.split('/');
-    const slug = pathParts.pop() || pathParts.pop(); // Handle trailing slash
+    const slug = pathParts.pop() || pathParts.pop();
 
     // Rota para buscar um quiz específico por slug
     if (req.method === 'GET' && slug && slug !== 'quiz-api') {
-      console.log(`[${requestId}] 🎯 Matched slug=${slug}. Fetching quiz.`);
-      
-      // 1. Fetch the quiz
       const { data: quizData, error: quizError } = await supabase
         .from('quizzes')
         .select('*')
@@ -58,36 +68,19 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: 'Quiz não encontrado ou não publicado' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
       }
 
-      // 2. Fetch the owner's footer settings
       let footerSettings = null;
       if (quizData.user_id) {
-          const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('footer_settings')
-              .eq('id', quizData.user_id)
-              .single();
-          
-          if (profileError) {
-              console.warn(`[${requestId}] ⚠️ Could not fetch profile for user ${quizData.user_id}:`, profileError.message);
-          } else {
-              footerSettings = profileData.footer_settings;
-          }
+          const { data: profileData } = await supabase.from('profiles').select('footer_settings').eq('id', quizData.user_id).single();
+          footerSettings = profileData ? profileData.footer_settings : null;
       }
 
-      // 3. Combine and return
-      const responsePayload = {
-          ...quizData,
-          footer_settings: footerSettings
-      };
-
+      const responsePayload = { ...quizData, footer_settings: footerSettings };
       return new Response(JSON.stringify(responsePayload), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    console.log(`[${requestId}] ❌ No route matched.`);
     return new Response(JSON.stringify({ error: 'Ação ou slug não especificado' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   } catch (error) {
-    console.error('💥 Internal server error:', error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
   }
 })
