@@ -69,9 +69,11 @@ class API_Quiz_Builder_Shortcode {
         wp_enqueue_style( $this->plugin_name . '-public', plugin_dir_url( dirname( __FILE__ ) ) . 'public/css/api-quiz-builder-public.css', array(), $this->version, 'all' );
         wp_enqueue_script( $this->plugin_name . '-renderer', plugin_dir_url( dirname( __FILE__ ) ) . 'public/js/api-quiz-renderer.js', array(), $this->version, true );
         
-        // Localize script with REST API URL
+        // Localize script with REST API URL and Supabase keys
         wp_localize_script( $this->plugin_name . '-renderer', 'api_quiz_builder_public_vars', array(
-            'rest_url' => get_rest_url( null, 'api-quiz/v1/quiz' ),
+            'rest_url'          => get_rest_url( null, 'api-quiz/v1/quiz' ),
+            'supabase_anon_key' => get_option( 'api_quiz_builder_supabase_anon_key', '' ),
+            'supabase_url'      => 'https://riqfafiivzpotfjqfscd.supabase.co', // Hardcoded Supabase project URL
         ));
     }
 
