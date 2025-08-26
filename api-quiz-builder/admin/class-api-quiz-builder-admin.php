@@ -9,17 +9,21 @@ class Api_Quiz_Builder_Admin {
     }
 
     public function add_options_page() {
-        add_options_page(
-            'NeniMaster Quiz-API Configurações',
-            'NeniMaster Quiz-API',
-            'manage_options',
-            $this->plugin_name,
-            array( $this, 'create_admin_page' )
+        // Use add_menu_page to create a top-level menu item
+        add_menu_page(
+            'NeniMaster Quiz-API Configurações', // Page Title
+            'Quiz NeniMaster',                  // Menu Title
+            'manage_options',                   // Capability
+            $this->plugin_name,                 // Menu Slug
+            array( $this, 'create_admin_page' ), // Callback function
+            'dashicons-forms',                  // Icon
+            25                                  // Position
         );
     }
 
     public function enqueue_styles_and_scripts($hook) {
-        if ('settings_page_' . $this->plugin_name !== $hook) {
+        // Corresponds to the top-level slug from add_menu_page
+        if ('toplevel_page_' . $this->plugin_name !== $hook) {
             return;
         }
         wp_enqueue_style(

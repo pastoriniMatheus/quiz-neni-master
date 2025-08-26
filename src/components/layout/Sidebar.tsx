@@ -6,11 +6,9 @@ import {
   FileText, 
   Database, 
   Settings, 
-  Shield,
   Menu,
   X,
-  Download,
-  Code
+  Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -25,72 +23,28 @@ export const Sidebar: React.FC = () => {
     { name: 'Configurações', href: '/configuracoes', icon: Settings },
   ];
 
-  const downloadPlugin = async () => {
-    try {
-      // Usar o conteúdo do plugin real do arquivo existente
-      const pluginResponse = await fetch('/src/wordpress-plugin/quiz-nenimaster-plugin.php');
-      const pluginContent = await pluginResponse.text();
-      
-      const readmeResponse = await fetch('/src/wordpress-plugin/readme.txt');
-      const readmeContent = await readmeResponse.text();
-      
-      // Importar JSZip dinamicamente
-      const JSZip = (await import('jszip')).default;
-      
-      const zip = new JSZip();
-      
-      // Adicionar arquivos ao ZIP
-      zip.file('quiz-nenimaster/quiz-nenimaster-plugin.php', pluginContent);
-      zip.file('quiz-nenimaster/readme.txt', readmeContent);
-      
-      // Gerar o arquivo ZIP
-      const content = await zip.generateAsync({ type: 'blob' });
-      
-      // Criar link para download
-      const url = window.URL.createObjectURL(content);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'quiz-nenimaster-wordpress-plugin.zip';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      toast.success('Plugin WordPress baixado com sucesso!');
-    } catch (error) {
-      console.error('Erro ao baixar plugin:', error);
-      toast.error('Erro ao baixar o plugin. Tente novamente.');
-    }
-  };
-
-  const downloadApiPlugin = async () => {
+  const downloadWordPressPlugin = async () => {
     try {
       const jszip = (await import('jszip')).default;
       const zip = new jszip();
 
-      // Fetch plugin files
-      const mainPhp = await fetch('/api-quiz-builder/api-quiz-builder.php').then(res => res.text());
-      const coreClass = await fetch('/api-quiz-builder/includes/class-api-quiz-builder.php').then(res => res.text());
-      const dbClass = await fetch('/api-quiz-builder/includes/class-api-quiz-builder-db.php').then(res => res.text());
-      const shortcodeClass = await fetch('/api-quiz-builder/includes/class-api-quiz-builder-shortcode.php').then(res => res.text());
-      const restApiClass = await fetch('/api-quiz-builder/includes/class-api-quiz-builder-rest-api.php').then(res => res.text());
-      const adminClass = await fetch('/api-quiz-builder/admin/class-api-quiz-builder-admin.php').then(res => res.text());
-      const adminCss = await fetch('/api-quiz-builder/admin/css/api-quiz-builder-admin.css').then(res => res.text());
-      const adminJs = await fetch('/api-quiz-builder/admin/js/api-quiz-builder-admin.js').then(res => res.text());
-      const publicCss = await fetch('/api-quiz-builder/public/css/api-quiz-builder-public.css').then(res => res.text());
-      const publicJs = await fetch('/api-quiz-builder/public/js/api-quiz-renderer.js').then(res => res.text());
+      const filesToZip = [
+        'api-quiz-builder/api-quiz-builder.php',
+        'api-quiz-builder/includes/class-api-quiz-builder.php',
+        'api-quiz-builder/includes/class-api-quiz-builder-loader.php',
+        'api-quiz-builder/includes/class-api-quiz-builder-gutenberg.php',
+        'api-quiz-builder/public/class-api-quiz-builder-public.php',
+        'api-quiz-builder/public/js/api-quiz-renderer.js',
+        'api-quiz-builder/admin/class-api-quiz-builder-admin.php',
+        'api-quiz-builder/admin/css/api-quiz-builder-admin.css',
+        'api-quiz-builder/admin/js/api-quiz-builder-admin.js',
+        'api-quiz-builder/admin/js/gutenberg-block.js',
+      ];
 
-      // Add files to zip
-      zip.file('api-quiz-builder/api-quiz-builder.php', mainPhp);
-      zip.file('api-quiz-builder/includes/class-api-quiz-builder.php', coreClass);
-      zip.file('api-quiz-builder/includes/class-api-quiz-builder-db.php', dbClass);
-      zip.file('api-quiz-builder/includes/class-api-quiz-builder-shortcode.php', shortcodeClass);
-      zip.file('api-quiz-builder/includes/class-api-quiz-builder-rest-api.php', restApiClass);
-      zip.file('api-quiz-builder/admin/class-api-quiz-builder-admin.php', adminClass);
-      zip.file('api-quiz-builder/admin/css/api-quiz-builder-admin.css', adminCss);
-      zip.file('api-quiz-builder/admin/js/api-quiz-builder-admin.js', adminJs);
-      zip.file('api-quiz-builder/public/css/api-quiz-builder-public.css', publicCss);
-      zip.file('api-quiz-builder/public/js/api-quiz-renderer.js', publicJs);
+      for (const path of filesToZip) {
+        const content = await fetch(`/${path}`).then(res => res.text());
+        zip.file(path, content);
+      }
 
       const content = await zip.generateAsync({ type: 'blob' });
       const url = window.URL.createObjectURL(content);
@@ -102,10 +56,10 @@ export const Sidebar: React.FC = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      toast.success('Plugin API Quiz Builder baixado com sucesso!');
+      toast.success('Plugin WordPress baixado com sucesso!');
     } catch (error) {
-      console.error('Erro ao baixar plugin API Quiz Builder:', error);
-      toast.error('Erro ao baixar o plugin API Quiz Builder. Tente novamente.');
+      console.error('Erro ao baixar o plugin:', error);
+      toast.error('Erro ao baixar o plugin. Tente novamente.');
     }
   };
 
@@ -176,25 +130,16 @@ export const Sidebar: React.FC = () => {
             })}
           </ul>
 
-          {/* Plugin Download Buttons */}
+          {/* Plugin Download Button */}
           <div className="mt-6 border-t pt-4 space-y-2">
             <Button
-              onClick={downloadPlugin}
+              onClick={downloadWordPressPlugin}
               variant="outline"
               className="w-full justify-start"
               size="sm"
             >
               <Download className="mr-3 h-4 w-4 flex-shrink-0" />
-              Plugin WordPress (iframe)
-            </Button>
-            <Button
-              onClick={downloadApiPlugin}
-              variant="outline"
-              className="w-full justify-start"
-              size="sm"
-            >
-              <Code className="mr-3 h-4 w-4 flex-shrink-0" />
-              Plugin API Quiz Builder
+              Plugin WordPress
             </Button>
           </div>
         </nav>
