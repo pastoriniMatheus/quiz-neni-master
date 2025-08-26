@@ -11,19 +11,16 @@ jQuery(document).ready(function($) {
     }
 
     loadBtn.on('click', function() {
-        const apiUrl = quizNeniMaster.apiUrl;
-        const apiKey = quizNeniMaster.apiKey;
-        const anonKey = quizNeniMaster.anonKey;
+        const supabaseUrl = quizNeniMaster.supabase_url; // Corrected variable name
+        const apiKey = quizNeniMaster.api_key;
+        const anonKey = quizNeniMaster.supabase_anon_key;
         
-        if (!apiUrl || !apiKey || !anonKey) {
+        if (!supabaseUrl || !apiKey || !anonKey) {
             statusEl.text('Erro: Por favor, preencha e salve a URL do Sistema, a Supabase Anon Key e a Chave da API.').css('color', 'red');
             return;
         }
 
-        // A API para listar todos os quizzes precisa ser implementada ou usada.
-        // Por enquanto, vamos assumir que a Edge Function pode ser modificada para listar quizzes.
-        // Vamos chamar a função com um parâmetro de ação.
-        const endpoint = apiUrl.replace(/\/$/, '') + '/functions/v1/quiz-api?action=list_all';
+        const endpoint = supabaseUrl.replace(/\/$/, '') + '/functions/v1/quiz-api?action=list_all';
 
         $.ajax({
             url: endpoint,
@@ -62,6 +59,15 @@ jQuery(document).ready(function($) {
             },
             error: function(jqXHR) {
                 let errorMsg = `Erro ao carregar quizzes: ${jqXHR.statusText} (${jqXHR.status}).`;
+                if (jqXHR.responseText) {
+                    try {
+                        const errorJson = JSON.parse(jqXHR.responseText);
+                        errorMsg += ` Detalhe: ${errorJson.error || jqXHR.responseText}`;
+                    } catch (e) {
+                        // If responseText is not JSON, append it directly
+                        errorMsg += ` Resposta do servidor: ${jqXHR.responseText}`;
+                    }
+                }
                 statusEl.text(errorMsg).css('color', 'red');
                 container.html(statusEl);
             },
