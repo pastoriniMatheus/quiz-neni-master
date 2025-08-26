@@ -19,7 +19,7 @@ interface QuizPreviewProps {
 const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => { // footerSettings reintroduzido no destructuring
   const [currentSession, setCurrentSession] = useState(0);
   const [answers, setAnswers] = useState<{ [key: string]: string }>({});
-  const [formData, setFormData<{ [key: string]: string }>({});
+  const [formData, setFormData] = useState<{ [key: string]: string }>({}); // Linha corrigida aqui
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showResult, setShowResult] = useState(false);
