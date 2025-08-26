@@ -1,9 +1,11 @@
 (function($) {
     'use strict';
 
+    // Corrigido: A função 'get' agora retorna o defaultValue se o resultado for null ou undefined.
     const get = (obj, path, defaultValue = undefined) => {
         const result = path.split('.').reduce((r, p) => r && r[p], obj);
-        return result === undefined ? defaultValue : result;
+        // Retorna defaultValue se o resultado for null OU undefined
+        return (result === undefined || result === null) ? defaultValue : result;
     };
 
     class QuizRenderer {
@@ -24,7 +26,7 @@
         }
 
         async init() {
-            this.render();
+            this.render(); // Renderiza o estado de carregamento inicial
             try {
                 const apiUrl = `${this.config.supabase_url}/functions/v1/quiz-api/${this.slug}`;
                 
