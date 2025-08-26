@@ -7,66 +7,66 @@
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     background-color: var(--background-color, #fff) !important; /* Use CSS variable with !important */
-    font-family: sans-serif;
+    font-family: "Inter", sans-serif !important; /* Explicitly set font with !important */
     color: var(--text-color, #333) !important; /* Use CSS variable with !important */
-    transition: all 0.3s ease-in-out; /* Smooth transitions for design changes */
-    box-sizing: border-box; /* Ensure padding doesn't increase total width */
+    transition: all 0.3s ease-in-out !important; /* Smooth transitions for design changes */
+    box-sizing: border-box !important; /* Ensure padding doesn't increase total width */
 }
 
 .api-quiz-builder-container .loading-message {
-    text-align: center;
-    font-style: italic;
+    text-align: center !important;
+    font-style: italic !important;
     color: var(--text-color, #666) !important;
 }
 
 .api-quiz-builder-quiz-title {
-    text-align: center;
-    font-size: 1.8em;
-    margin-bottom: 10px;
+    text-align: center !important;
+    font-size: 1.8em !important;
+    margin-bottom: 10px !important;
     color: var(--text-color, #333) !important; /* Use CSS variable with !important */
-    line-height: 1.2;
+    line-height: 1.2 !important;
 }
 
 .api-quiz-builder-quiz-description {
-    text-align: center;
-    font-size: 1em;
+    text-align: center !important;
+    font-size: 1em !important;
     color: var(--text-color, #666) !important; /* Use CSS variable with !important */
-    margin-bottom: 20px;
+    margin-bottom: 20px !important;
 }
 
 .api-quiz-builder-progress-bar {
-    width: 100%;
+    width: 100% !important;
     background-color: var(--secondary-color, #e0e0e0) !important; /* Use secondary color for track */
-    border-radius: 5px;
-    height: 8px;
-    margin-bottom: 20px;
+    border-radius: 5px !important;
+    height: 8px !important;
+    margin-bottom: 20px !important;
 }
 
 .api-quiz-builder-progress-fill {
-    height: 100%;
-    width: 0%;
+    height: 100% !important;
+    width: 0% !important;
     background-color: var(--primary-color, #007bff) !important; /* Use primary color for fill */
-    border-radius: 5px;
-    transition: width 0.5s ease-in-out;
+    border-radius: 5px !important;
+    transition: width 0.5s ease-in-out !important;
 }
 
 .api-quiz-builder-session-content {
-    padding: 15px;
-    text-align: center;
+    padding: 15px !important;
+    text-align: center !important;
 }
 
 .api-quiz-builder-question-title {
-    font-size: 1.5em;
-    margin-bottom: 20px;
+    font-size: 1.5em !important;
+    margin-bottom: 20px !important;
     color: var(--text-color, #333) !important; /* Use CSS variable with !important */
-    line-height: 1.3;
+    line-height: 1.3 !important;
 }
 
 .api-quiz-builder-options-grid {
-    display: grid;
-    gap: 10px;
-    max-width: 400px;
-    margin: 0 auto;
+    display: grid !important;
+    gap: 10px !important;
+    max-width: 400px !important;
+    margin: 0 auto !important;
 }
 
 /* Button Styles */
@@ -133,18 +133,18 @@
 
 
 .api-quiz-builder-form-fields {
-    display: grid;
-    gap: 15px;
-    max-width: 400px;
-    margin: 0 auto;
-    text-align: left;
+    display: grid !important;
+    gap: 15px !important;
+    max-width: 400px !important;
+    margin: 0 auto !important;
+    text-align: left !important;
 }
 
 .api-quiz-builder-form-fields label {
-    display: block;
-    margin-bottom: 5px;
+    display: block !important;
+    margin-bottom: 5px !important;
     font-weight: bold !important;
-    color: var(--text-color, #333) !important;
+    color: var(--text-color, #333) !important; /* Use CSS variable with !important */
 }
 
 .api-quiz-builder-form-fields input,
@@ -167,8 +167,8 @@
 }
 
 .api-quiz-builder-navigation-buttons {
-    margin-top: 20px;
-    text-align: center;
+    margin-top: 20px !important;
+    text-align: center !important;
 }
 
 .api-quiz-builder-button {

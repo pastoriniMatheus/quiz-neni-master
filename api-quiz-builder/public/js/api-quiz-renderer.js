@@ -583,11 +583,6 @@
         }
 
         proceedToNextStep() {
-            // If we just finished an ad for the current session, move past it.
-            // The `handleAdComplete` already set `showAd` to false.
-            // So, if `this.state.showAd` is false, it means we're either starting a new session
-            // or just finished an ad for the previous one.
-
             const currentSessionData = this.quizData.sessions[this.currentSessionIndex];
             const isLastSession = this.currentSessionIndex === this.quizData.sessions.length - 1;
 
