@@ -271,30 +271,33 @@
 
 /* Footer styles */
 .api-quiz-builder-footer {
+    /* Ajustado para usar a cor primária como background e texto branco */
+    background-color: var(--primary-color, #007bff) !important; 
+    color: #fff !important; /* Texto branco */
     margin-top: 30px !important;
     padding: 20px !important;
-    background-color: var(--secondary-color, #f9f9f9) !important; /* Use secondary color */
-    border-top: 1px solid var(--secondary-color, #eee) !important;
+    border-top: 1px solid var(--primary-color, #007bff) !important; /* Borda com a mesma cor */
     text-align: center !important;
     font-size: 0.85em !important;
-    color: var(--text-color, #777) !important;
+    box-sizing: border-box !important; /* Garante que padding não aumente a largura total */
 }
 
 .api-quiz-builder-footer a {
-    color: var(--primary-color, #007bff) !important;
-    text-decoration: none !important;
+    color: #fff !important; /* Links brancos no rodapé */
+    text-decoration: underline !important;
 }
 
 .api-quiz-builder-footer a:hover {
-    text-decoration: underline !important;
+    text-decoration: none !important;
+    opacity: 0.8 !important;
 }
 
 .api-quiz-builder-footer-stats {
     margin-bottom: 15px !important;
-    display: flex !important; /* Adicionado para alinhar itens */
-    flex-wrap: wrap !important; /* Permite quebrar linha em telas pequenas */
-    justify-content: center !important; /* Centraliza os itens */
-    gap: 10px !important; /* Espaçamento entre os itens */
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 10px !important;
 }
 
 .api-quiz-builder-footer-location,
@@ -302,7 +305,7 @@
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    white-space: nowrap !important; /* Evita quebra de linha dentro do item */
+    white-space: nowrap !important;
 }
 
 .api-quiz-builder-footer-location span,
@@ -318,7 +321,7 @@
 }
 
 .api-quiz-builder-footer-counter .text-green-600 {
-    color: var(--primary-color, #28a745) !important; /* Use primary color for counter */
+    color: #fff !important; /* Contador também branco */
     font-weight: bold !important;
 }
 

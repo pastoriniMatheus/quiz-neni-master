@@ -22,6 +22,7 @@
             this.showSkipButton = false;
             this.locationInterval = null; // Para gerenciar o intervalo do contador
             this.counterInterval = null; // Para gerenciar o intervalo do contador
+            this.footerElement = null; // Referência ao elemento do rodapé
             this.init();
         }
 
@@ -83,6 +84,7 @@
             }
             this.container.html(content);
             this.attachEventListeners();
+            this.renderAndAttachFooter(); // Renderiza e anexa o rodapé separadamente
         }
 
         renderSessionState() {
@@ -97,7 +99,6 @@
                 <p class="api-quiz-builder-quiz-description">${this.quizData.description || ''}</p>
                 <div class="api-quiz-builder-progress-bar"><div class="api-quiz-builder-progress-fill" style="width: ${progress}%;"></div></div>
                 <div class="api-quiz-builder-session-content ${cardClass}">${sessionContent}</div>
-                ${this.renderFooter()}
             `;
         }
 
@@ -189,7 +190,6 @@
                 <div class="api-quiz-builder-navigation-buttons">
                     <button class="${buttonClass}" id="ad-continue" style="display:${this.showSkipButton ? 'block' : 'none'};">Continuar</button>
                 </div>
-                ${this.renderFooter()}
             `;
         }
 
@@ -224,7 +224,6 @@
                 <div class="api-quiz-builder-navigation-buttons">
                     <button class="${buttonClass}" id="final-ad-continue" style="display:${this.showSkipButton ? 'block' : 'none'};">Continuar</button>
                 </div>
-                ${this.renderFooter()}
             `;
         }
 
@@ -240,7 +239,6 @@
                     </div>
                     <p class="api-quiz-builder-loading-subtext">Analisando suas respostas...</p>
                 </div>
-                ${this.renderFooter()}
             `;
         }
 
@@ -262,11 +260,13 @@
                         <button class="${buttonClass}" id="restart-quiz-btn">Refazer Quiz</button>
                     `}
                 </div>
-                ${this.renderFooter()}
             `;
         }
 
-        renderFooter() {
+        // Novo método para renderizar e anexar o rodapé
+        renderAndAttachFooter() {
+            if (!this.quizData) return;
+
             const footerSettings = get(this.quizData, 'footer_settings', {});
             const showLocation = get(footerSettings, 'showLocation', true);
             const showCounter = get(footerSettings, 'showCounter', true);
@@ -300,7 +300,7 @@
                 `;
             }
 
-            return `
+            const footerHtml = `
                 <footer class="api-quiz-builder-footer">
                     <div class="api-quiz-builder-footer-content">
                         ${(showLocation || showCounter) ? `
@@ -321,7 +321,20 @@
                     </div>
                 </footer>
             `;
+
+            // Remove o rodapé antigo se existir
+            if (this.footerElement) {
+                this.footerElement.remove();
+            }
+
+            // Cria e anexa o novo rodapé ao body
+            this.footerElement = $(footerHtml);
+            $('body').append(this.footerElement);
+
+            // Inicializa os scripts do rodapé após anexar o HTML
+            this.initFooterScripts();
         }
+
 
         attachEventListeners() {
             this.container.off(); // Remove all previous event listeners
@@ -343,9 +356,6 @@
             } else if (this.state === 'RESULT') {
                 this.handleResultActions();
             }
-
-            // Sempre anexa os scripts do rodapé se habilitados
-            this.initFooterScripts();
         }
 
         handleQuestionAnswer(e) {
@@ -545,8 +555,8 @@
             
             if (redirect.enabled && redirect.url) {
                 let countdown = redirect.delay || 5;
-                const countdownEl = this.container.find('#redirect-countdown');
-                const redirectBtn = this.container.find('#redirect-btn');
+                const countdownEl = this.footerElement.find('#redirect-countdown'); // Buscar no footerElement
+                const redirectBtn = this.footerElement.find('#redirect-btn'); // Buscar no footerElement
 
                 if (this.redirectTimer) clearInterval(this.redirectTimer);
 
@@ -584,7 +594,7 @@
             if (this.counterInterval) clearInterval(this.counterInterval);
             
             // Remove scripts injetados anteriormente para evitar duplicação
-            this.container.find('.qnm-injected-script').remove(); 
+            $('head').find('.qnm-injected-script').remove(); 
 
             const injectScript = (scriptContent, className) => {
                 if (!scriptContent) return;
@@ -615,8 +625,8 @@
                     injectScript(locationScript, 'qnm-location-script');
                 } else {
                     // Lógica padrão de script de localização
-                    const locationDisplayEl = this.container.find('#qnm-location-display');
-                    const locationCityDisplayEl = this.container.find('#qnm-location-city-display');
+                    const locationDisplayEl = this.footerElement.find('#qnm-location-display');
+                    const locationCityDisplayEl = this.footerElement.find('#qnm-location-city-display');
                     const mostrarCidade = async () => {
                         try {
                             const response = await fetch("https://api-bdc.io/data/reverse-geocode-client");
@@ -648,7 +658,7 @@
                     injectScript(counterScript, 'qnm-counter-script');
                 } else {
                     // Lógica padrão de script do contador
-                    const peopleCountEl = this.container.find('#qnm-people-count');
+                    const peopleCountEl = this.footerElement.find('#qnm-people-count');
                     let peopleCount = Math.floor(Math.random() * (800 - 400 + 1)) + 400;
                     peopleCountEl.text(peopleCount);
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { QuizFooter } from './QuizFooter';
-import { LocationScript } from './LocationScript'; // Reintroduzido
+// Removido: import { LocationScript } from './LocationScript'; // Não é mais necessário aqui
 
 interface CompanyData {
   name: string;
@@ -34,8 +34,7 @@ export const CompanyFooterManager: React.FC<CompanyFooterManagerProps> = ({
 
   return (
     <>
-      {/* Script de localização - invisível, apenas detecta. A lógica agora é tratada pelo plugin WP. */}
-      {enableLocationScript && <LocationScript customScript={footerSettings?.locationScript} />}
+      {/* O LocationScript não é mais renderizado aqui, a lógica está no QuizFooter */}
       
       {/* Footer do quiz */}
       <QuizFooter
