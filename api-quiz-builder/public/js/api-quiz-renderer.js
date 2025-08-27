@@ -483,7 +483,8 @@
                     const newScript = document.createElement('script');
                     Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
                     newScript.text = oldScript.text || '';
-                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                    newScript.async = true; // Adicionado para scripts de anúncio
+                    oldScript.parentNode?.replaceChild(newScript, oldScript);
                 });
                 this.adTimer = setTimeout(() => {
                     this.showSkipButton = true;
@@ -533,7 +534,8 @@
                     const newScript = document.createElement('script');
                     Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
                     newScript.text = oldScript.text || '';
-                    oldScript.parentNode.replaceChild(newScript, oldScript);
+                    newScript.async = true; // Adicionado para scripts de anúncio
+                    oldScript.parentNode?.replaceChild(newScript, oldScript);
                 });
                 this.adTimer = setTimeout(() => {
                     this.showSkipButton = true;
@@ -589,6 +591,7 @@
 
         handleResultActions() {
             const redirect = get(this.quizData, 'settings.redirect', {});
+            console.log('handleResultActions called. Redirect enabled:', redirect.enabled, 'URL:', redirect.url);
             
             if (redirect.enabled && redirect.url) {
                 let countdown = redirect.delay || 5;
@@ -601,6 +604,7 @@
                 const updateCountdown = () => {
                     if (countdown <= 0) {
                         clearInterval(this.redirectTimer);
+                        console.log('Redirecting to:', redirect.url);
                         window.open(redirect.url, '_blank'); // Open in new tab
                     } else {
                         countdownEl.text(`Redirecionando em ${countdown} segundos...`);
@@ -611,9 +615,11 @@
                 updateCountdown();
                 redirectBtn.on('click', () => { 
                     if (this.redirectTimer) clearInterval(this.redirectTimer);
+                    console.log('Redirect button clicked. Redirecting to:', redirect.url);
                     window.open(redirect.url, '_blank'); 
                 });
             } else {
+                console.log('Redirect not enabled or URL missing. Attaching restart quiz handler.');
                 this.container.on('click', '#restart-quiz-btn', () => {
                     window.location.reload(); // Reload page to restart quiz
                 });
@@ -645,6 +651,7 @@
                             const newScript = document.createElement('script');
                             Array.from(child.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
                             newScript.text = child.textContent;
+                            newScript.async = true; // Adicionado para scripts de anúncio
                             elementToAppend = newScript;
                         } else {
                             elementToAppend = child.cloneNode(true);

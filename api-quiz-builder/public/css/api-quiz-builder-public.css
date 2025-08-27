@@ -50,9 +50,12 @@
     transition: width 0.5s ease-in-out !important;
 }
 
+/* Removendo borda extra do conteúdo da sessão */
 .api-quiz-builder-session-content {
     padding: 15px !important;
     text-align: center !important;
+    border: none !important; /* Removido borda */
+    box-shadow: none !important; /* Removido sombra */
 }
 
 .api-quiz-builder-question-title {
@@ -80,8 +83,10 @@
     font-size: 1em !important;
     transition: all 0.2s ease-in-out !important;
     width: 100% !important;
-    text-align: left !important;
-    display: block !important; /* Ensure buttons take full width */
+    text-align: center !important; /* Centralizado */
+    display: flex !important; /* Usar flexbox para centralizar conteúdo */
+    justify-content: center !important; /* Centralizar horizontalmente */
+    align-items: center !important; /* Centralizar verticalmente */
     box-sizing: border-box !important;
 }
 
