@@ -6,6 +6,24 @@
         return (result === undefined || result === null) ? defaultValue : result;
     };
 
+    // Função para converter HEX para RGB (para uso em RGBA)
+    function hexToRgb(hex) {
+        let r = 0, g = 0, b = 0;
+        // 3 digits
+        if (hex.length == 4) {
+            r = parseInt(hex[1] + hex[1], 16);
+            g = parseInt(hex[2] + hex[2], 16);
+            b = parseInt(hex[3] + hex[3], 16);
+        }
+        // 6 digits
+        else if (hex.length == 7) {
+            r = parseInt(hex.substring(1, 3), 16);
+            g = parseInt(hex.substring(3, 5), 16);
+            b = parseInt(hex.substring(5, 7), 16);
+        }
+        return `${r}, ${g}, ${b}`;
+    }
+
     class QuizRenderer {
         constructor(container, slug) {
             this.container = $(container);
@@ -57,13 +75,17 @@
             const design = get(this.quizData, 'design', {});
             console.log('Applying styles with design:', design);
             
+            const primaryColorHex = design.primaryColor || '#007bff';
+            const pageBackgroundColor = get(design, 'pageBackgroundColor', '#f8f8f8');
+
             // Set CSS variables globally on the html element
             $('html').css({
-                '--primary-color': design.primaryColor || '#007bff',
+                '--primary-color': primaryColorHex,
+                '--primary-color-rgb': hexToRgb(primaryColorHex), // Nova variável RGB
                 '--secondary-color': design.secondaryColor || '#e0e0e0', // Default secondary color
                 '--background-color': design.backgroundColor || '#ffffff', // Default quiz card background
                 '--text-color': design.textColor || '#333333', // Default quiz text color
-                '--page-background-color': design.pageBackgroundColor || '#f8f8f8', // Default page background
+                '--page-background-color': pageBackgroundColor, // Default page background
                 '--footer-background-color': '#f9f9f9', // Cor de fundo neutra para o rodapé
                 '--footer-text-color': '#4a4a4a', // Cor de texto neutra para o rodapé
                 '--button-border-color-unselected': '#e5e7eb' // Cor da borda para botões não selecionados
@@ -71,7 +93,7 @@
             console.log('HTML CSS variables set.');
 
             // Apply page background color to body
-            $('body').css('background-color', get(design, 'pageBackgroundColor', '#f8f8f8'));
+            $('body').css('background-color', pageBackgroundColor);
             
             // Apply quiz container specific styles using the variables
             this.container.css({
@@ -327,7 +349,7 @@
                         <div class="api-quiz-builder-footer-links">
                             Ao prosseguir você concorda com os nossos<br/>
                             <a href="${termsUrl}" target="_blank" rel="noopener noreferrer">Termos de Uso</a>
-                            {' e '} <!-- Corrigido aqui -->
+                            &nbsp;e&nbsp; <!-- Corrigido aqui -->
                             <a href="${privacyUrl}" target="_blank" rel="noopener noreferrer">Políticas de Privacidade</a>
                         </div>
                         <p class="api-quiz-builder-footer-text">
