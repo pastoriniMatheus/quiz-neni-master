@@ -5,7 +5,7 @@
     padding: 20px;
     border: 1px solid #ddd;
     border-radius: 12px !important; /* Aumentado para cantos mais suaves */
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important; /* Sombra mais proeminente */
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1) !important; /* Sombra mais proeminente (shadow-lg) */
     background-color: var(--background-color, #fff) !important; /* Use CSS variable with !important */
     font-family: "Inter", sans-serif !important; /* Explicitly set font with !important */
     color: var(--text-color, #333) !important; /* Use CSS variable with !important */
