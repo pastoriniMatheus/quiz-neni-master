@@ -396,6 +396,7 @@
         }
 
         handleQuestionAnswer(e) {
+            console.log('handleQuestionAnswer called.');
             const session = this.quizData.sessions[this.currentSessionIndex];
             const selectedOption = $(e.target).data('option');
             this.answers[session.id] = selectedOption;
@@ -410,9 +411,11 @@
         handleFormInputChange(e) {
             const inputName = $(e.target).attr('name');
             this.formData[inputName] = $(e.target).val();
+            console.log('Form data updated:', this.formData);
         }
 
         handleFormSubmit() {
+            console.log('handleFormSubmit called.');
             const session = this.quizData.sessions[this.currentSessionIndex];
             const formFields = session.formFields || {};
             let missingFields = [];
@@ -431,20 +434,25 @@
         }
 
         moveToNextStep() {
+            console.log('moveToNextStep called. Current session index:', this.currentSessionIndex);
             const session = this.quizData.sessions[this.currentSessionIndex];
             const isLastSession = this.currentSessionIndex >= this.quizData.sessions.length - 1;
             const settings = get(this.quizData, 'settings', {});
 
             if (session.showAd) {
+                console.log('Moving to AD state.');
                 this.state = 'AD';
                 this.showSkipButton = false; // Reset for new ad
             } else if (!isLastSession) {
+                console.log('Moving to next SESSION state.');
                 this.currentSessionIndex++;
                 this.state = 'SESSION';
             } else if (settings.showFinalAd) {
+                console.log('Moving to FINAL_AD state.');
                 this.state = 'FINAL_AD';
                 this.showSkipButton = false; // Reset for final ad
             } else {
+                console.log('Last session, completing quiz.');
                 this.completeQuiz();
                 return;
             }
@@ -556,6 +564,7 @@
         }
 
         async completeQuiz() {
+            console.log('completeQuiz called. Preparing to submit data.');
             this.state = 'PROCESSING';
             this.render();
 
@@ -571,7 +580,7 @@
 
             const submitUrl = `${this.config.supabase_url}/functions/v1/submit-quiz-response`;
             try {
-                await $.ajax({
+                const response = await $.ajax({
                     url: submitUrl,
                     method: 'POST',
                     contentType: 'application/json',
@@ -583,9 +592,9 @@
                         responseData: allResponses
                     })
                 });
-                console.log('Quiz response submitted successfully from WordPress plugin.');
+                console.log('Quiz response submitted successfully from WordPress plugin. Response:', response);
             } catch (e) { 
-                console.error("Falha ao enviar respostas do WordPress plugin.", e); 
+                console.error("Falha ao enviar respostas do WordPress plugin. Erro:", e); 
                 // Optionally, show an error message to the user
             }
 
@@ -658,6 +667,7 @@
                             const newScript = document.createElement('script');
                             Array.from(child.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
                             newScript.text = child.textContent;
+                            newScript.async = true; // Adicionado para scripts de anúncio
                             elementToAppend = newScript;
                         } else {
                             elementToAppend = child.cloneNode(true);
