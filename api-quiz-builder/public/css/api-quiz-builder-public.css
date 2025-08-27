@@ -277,11 +277,12 @@
     width: 100% !important; /* Largura total */
     z-index: 1000 !important; /* Garante que fique acima de outros elementos */
     
-    background-color: var(--page-background-color, #f8f8f8) !important; /* Fundo neutro */
-    color: var(--text-color, #777) !important; /* Cor do texto */
+    /* Usar cores neutras para o fundo e texto, e primary para links */
+    background-color: #f9f9f9 !important; /* Fundo neutro, similar a bg-muted/30 */
+    color: #4a4a4a !important; /* Cor do texto mais escura */
     margin-top: 0 !important; /* Remove margem superior */
     padding: 20px !important;
-    border-top: 1px solid var(--secondary-color, #eee) !important; /* Borda superior */
+    border-top: 1px solid #e0e0e0 !important; /* Borda superior neutra */
     text-align: center !important;
     font-size: 0.85em !important;
     box-sizing: border-box !important;
