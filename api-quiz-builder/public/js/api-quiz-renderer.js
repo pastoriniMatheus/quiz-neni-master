@@ -563,6 +563,12 @@
             const sessionId = 'wp-session-' + Date.now();
             const userAgent = navigator.userAgent;
 
+            console.log('Attempting to submit quiz response from WordPress plugin:');
+            console.log('  Quiz ID:', this.quizData.id);
+            console.log('  Session ID:', sessionId);
+            console.log('  User Agent:', userAgent);
+            console.log('  Response Data:', allResponses);
+
             const submitUrl = `${this.config.supabase_url}/functions/v1/submit-quiz-response`;
             try {
                 await $.ajax({
@@ -577,8 +583,9 @@
                         responseData: allResponses
                     })
                 });
+                console.log('Quiz response submitted successfully from WordPress plugin.');
             } catch (e) { 
-                console.error("Falha ao enviar respostas.", e); 
+                console.error("Falha ao enviar respostas do WordPress plugin.", e); 
                 // Optionally, show an error message to the user
             }
 
@@ -651,7 +658,6 @@
                             const newScript = document.createElement('script');
                             Array.from(child.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
                             newScript.text = child.textContent;
-                            newScript.async = true; // Adicionado para scripts de anúncio
                             elementToAppend = newScript;
                         } else {
                             elementToAppend = child.cloneNode(true);

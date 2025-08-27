@@ -118,6 +118,12 @@ const QuizPreview = ({ quiz, footerSettings }: QuizPreviewProps) => { // footerS
     const allResponses = { ...answers, ...formData };
     const sessionId = crypto.randomUUID();
     const userAgent = navigator.userAgent;
+
+    console.log('Attempting to submit quiz response from React app:');
+    console.log('  Quiz ID:', quiz.id);
+    console.log('  Session ID:', sessionId);
+    console.log('  User Agent:', userAgent);
+    console.log('  Response Data:', allResponses);
   
     try {
       // Usar supabase.functions.invoke() para chamar a Edge Function
