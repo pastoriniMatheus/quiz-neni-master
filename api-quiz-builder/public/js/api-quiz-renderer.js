@@ -447,14 +447,10 @@
                 console.log('Moving to next SESSION state.');
                 this.currentSessionIndex++;
                 this.state = 'SESSION';
-            } else if (settings.showFinalAd) {
-                console.log('Moving to FINAL_AD state.');
-                this.state = 'FINAL_AD';
-                this.showSkipButton = false; // Reset for final ad
-            } else {
-                console.log('Last session, completing quiz.');
-                this.completeQuiz();
-                return;
+            } else { // This block handles the last session, regardless of final ad
+                console.log('Last session reached. Calling completeQuiz().');
+                this.completeQuiz(); // Call completeQuiz here
+                return; // completeQuiz will handle state transitions
             }
             this.render();
         }
@@ -508,7 +504,19 @@
 
         handleAdContinue() {
             if (this.adTimer) clearTimeout(this.adTimer);
-            this.moveToNextStep();
+            const settings = get(this.quizData, 'settings', {});
+            const isLastSession = this.currentSessionIndex >= this.quizData.sessions.length - 1;
+
+            if (!isLastSession) {
+                this.currentSessionIndex++;
+                this.state = 'SESSION';
+            } else if (settings.showFinalAd) {
+                this.state = 'FINAL_AD';
+                this.showSkipButton = false;
+            } else {
+                this.state = 'RESULT'; // If no final ad, go straight to result after interstitial ad
+            }
+            this.render();
         }
 
         loadFinalAdContent() {
@@ -600,7 +608,13 @@
 
             const processingTime = get(this.quizData, 'settings.processingTime', 3) * 1000;
             setTimeout(() => {
-                this.state = 'RESULT';
+                const settings = get(this.quizData, 'settings', {});
+                if (settings.showFinalAd) {
+                    this.state = 'FINAL_AD';
+                    this.showSkipButton = false; // Reset for final ad
+                } else {
+                    this.state = 'RESULT';
+                }
                 this.render();
             }, processingTime);
         }
