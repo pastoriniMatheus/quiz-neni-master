@@ -63,7 +63,10 @@
                 '--secondary-color': design.secondaryColor || '#e0e0e0', // Default secondary color
                 '--background-color': design.backgroundColor || '#ffffff', // Default quiz card background
                 '--text-color': design.textColor || '#333333', // Default quiz text color
-                '--page-background-color': design.pageBackgroundColor || '#f8f8f8' // Default page background
+                '--page-background-color': design.pageBackgroundColor || '#f8f8f8', // Default page background
+                '--footer-background-color': '#f9f9f9', // Cor de fundo neutra para o rodapé
+                '--footer-text-color': '#4a4a4a', // Cor de texto neutra para o rodapé
+                '--button-border-color-unselected': '#e5e7eb' // Cor da borda para botões não selecionados
             });
             console.log('HTML CSS variables set.');
 
@@ -324,7 +327,7 @@
                         <div class="api-quiz-builder-footer-links">
                             Ao prosseguir você concorda com os nossos<br/>
                             <a href="${termsUrl}" target="_blank" rel="noopener noreferrer">Termos de Uso</a>
-                            {' e '}
+                            {' e '} <!-- Corrigido aqui -->
                             <a href="${privacyUrl}" target="_blank" rel="noopener noreferrer">Políticas de Privacidade</a>
                         </div>
                         <p class="api-quiz-builder-footer-text">

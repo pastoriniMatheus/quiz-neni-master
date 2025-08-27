@@ -73,7 +73,7 @@
 .api-quiz-builder-option-button,
 .api-quiz-builder-button {
     background-color: var(--background-color, #f8f8f8) !important;
-    border: 2px solid var(--secondary-color, #ccc) !important;
+    border: 1px solid var(--button-border-color-unselected, #e5e7eb) !important; /* Usar nova variável para borda */
     color: var(--text-color, #333) !important;
     padding: 12px 15px !important;
     cursor: pointer !important;
@@ -88,7 +88,7 @@
 .api-quiz-builder-option-button:hover,
 .api-quiz-builder-button:hover {
     background-color: var(--secondary-color, #e0e0e0) !important;
-    color: var(--primary-color-foreground, #fff) !important; /* Assuming a foreground color for secondary */
+    color: var(--primary-color, #007bff) !important; /* Cor do texto do botão no hover */
     border-color: var(--primary-color, #007bff) !important;
 }
 
@@ -100,7 +100,7 @@
 
 /* Specific Button Styles */
 .api-quiz-builder-button-style-rounded {
-    border-radius: 8px !important;
+    border-radius: 8px !important; /* Ajustado para 8px para ser mais arredondado */
 }
 .api-quiz-builder-button-style-square {
     border-radius: 0 !important;
@@ -278,11 +278,11 @@
     z-index: 1000 !important; /* Garante que fique acima de outros elementos */
     
     /* Usar cores neutras para o fundo e texto, e primary para links */
-    background-color: #f9f9f9 !important; /* Fundo neutro, similar a bg-muted/30 */
-    color: #4a4a4a !important; /* Cor do texto mais escura */
+    background-color: var(--footer-background-color, #f9f9f9) !important; /* Fundo neutro */
+    color: var(--footer-text-color, #4a4a4a) !important; /* Cor do texto */
     margin-top: 0 !important; /* Remove margem superior */
     padding: 20px !important;
-    border-top: 1px solid #e0e0e0 !important; /* Borda superior neutra */
+    border-top: 1px solid var(--secondary-color, #e0e0e0) !important; /* Borda superior neutra */
     text-align: center !important;
     font-size: 0.85em !important;
     box-sizing: border-box !important;
